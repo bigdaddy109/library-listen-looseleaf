@@ -25,10 +25,9 @@ function coverKind(book: Book) {
   return "book";
 }
 
-export function Cover({ book, photo = true, shape = "poster" }: { book: Book; photo?: boolean; shape?: "poster" | "square" }) {
+export function Cover({ book, shape = "poster" }: { book: Book; shape?: "poster" | "square" }) {
   const kind = coverKind(book);
   const stock = kind === "woods" ? "kraft" : kind === "school" ? "pad" : "card";
-  const showPhoto = photo && !!book.coverUrl && shape !== "square";
   const square = shape === "square";
   return (
     <Paper
@@ -38,17 +37,15 @@ export function Cover({ book, photo = true, shape = "poster" }: { book: Book; ph
       tape={false}
       shadow="card"
       seed={book.id}
-      data-cover={showPhoto ? "photo" : "designed"}
+      data-cover="designed"
       className={
         square
           ? "flex aspect-square w-full items-center justify-center p-1 text-ink"
-          : `flex aspect-[3/4] w-24 shrink-0 flex-col justify-between p-2 text-ink${showPhoto ? " overflow-hidden" : ""}`
+          : "flex aspect-[3/4] w-24 shrink-0 flex-col justify-between p-2 text-ink"
       }
     >
       <CoverMark kind={kind} />
-      {showPhoto ? (
-        <img src={book.coverUrl} alt="" className="h-10 w-full max-w-full object-cover" />
-      ) : square ? null : (
+      {square ? null : (
         <p className="font-script text-sm leading-tight break-words">{book.seriesZh === book.seriesEn ? book.title : book.seriesZh}</p>
       )}
     </Paper>
@@ -317,7 +314,7 @@ function BookGroups({
               return (
                 <Card key={book.id} tilt={false} className="w-full min-w-0 max-w-full gap-3 py-4">
                   <CardContent className="flex min-w-0 gap-3">
-                    <Cover book={book} photo={false} />
+                    <Cover book={book} />
                     <div className="min-w-0 flex-1">
                       <CardDescription className="break-words">{seriesLine(book)}</CardDescription>
                       <CardTitle className="mt-1 break-words text-[1.45rem]">{book.title}</CardTitle>
@@ -516,10 +513,10 @@ export function PlayerScreen({
         <CardContent className="grid items-center gap-4 sm:grid-cols-[8rem_1fr]">
           {sheet ? (
             <div className="mx-auto w-36 max-w-full">
-              <Cover book={book} photo={false} shape="square" />
+              <Cover book={book} shape="square" />
             </div>
           ) : (
-            <Cover book={book} photo={false} />
+            <Cover book={book} />
           )}
           <div className="min-w-0">
             <CardDescription className="break-words">{seriesLine(book)}</CardDescription>
@@ -666,7 +663,7 @@ export function MiniPlayer({
         />
         <div className="relative z-10 flex h-full items-center gap-3 pointer-events-none">
           <div className="w-11 shrink-0">
-            <Cover book={book} photo={false} shape="square" />
+            <Cover book={book} shape="square" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-sm leading-tight font-bold">

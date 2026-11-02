@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { InkProvider } from "@/lib/ink/react";
 import { buildLibrary, type Book, type Entry, type ProgressMap } from "../src/library";
 import { copy, type Lang } from "../src/i18n";
-import { Frame, Shelf } from "../src/views";
+import { BookScreen, Frame, Shelf } from "../src/views";
 import "../src/app.css";
 
 /** Wider than a phone, so a rendered Drive cover would blow the card out of the paper. */
@@ -73,6 +73,28 @@ const shelfBooks = params.get("fixture") === "grouped" ? groupedBooks : books;
 
 function Harness() {
   const text = copy(lang);
+  if (params.get("fixture") === "book") {
+    const current = books[0];
+    if (!current) return null;
+    return (
+      <InkProvider>
+        <Frame text={text} lang={lang} setLang={() => undefined} mode="drive" heading={current.title} onSignOut={() => undefined}>
+          <BookScreen
+            book={current}
+            text={text}
+            lang={lang}
+            progress={progress}
+            activeChapterId="ms-01-0"
+            clock="0:12"
+            paused
+            onBack={() => undefined}
+            onOpenPlayer={() => undefined}
+            onChapter={() => undefined}
+          />
+        </Frame>
+      </InkProvider>
+    );
+  }
   return (
     <InkProvider>
       <Frame text={text} lang={lang} setLang={() => undefined} mode="drive" heading={text.shelf} onSignOut={() => undefined}>
