@@ -1,12 +1,11 @@
 name: preview-pages
 
-# Pages is on. A push to the preview branch publishes that commit.
-# workflow_dispatch stays for a manual run. This token cannot start one itself.
+# A push to main publishes the live site. workflow_dispatch stays for a manual run.
 on:
   workflow_dispatch:
   push:
     branches:
-      - cursor/looseleaf-preview-bc89
+      - main
 
 permissions:
   contents: read

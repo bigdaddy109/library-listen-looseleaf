@@ -5,8 +5,6 @@ export const LANG_KEY = "librarylisten.v2.lang";
 const dict = {
   "zh-TW": {
     appName: "Library Listen Looseleaf",
-    preview: "預覽，等待核准",
-    notLive: "這不是正式站。現在用的仍是舊的 Library Listen。",
     shelf: "書架",
     demoBanner: "這是示範書架，方便先看畫面。用 Google 登入之後，會改讀你雲端硬碟裡名為 Library 的資料夾。",
     signedOut: "尚未登入。下面是示範書，音檔是靜音，用來試播放器。",
@@ -54,8 +52,6 @@ const dict = {
   },
   en: {
     appName: "Library Listen Looseleaf",
-    preview: "Preview, waiting for approval",
-    notLive: "This is not the live site. The current Library Listen stays where it is.",
     shelf: "Shelf",
     demoBanner:
       "This is a demo shelf so you can look around. After you sign in with Google, it reads the Drive folder named Library.",

@@ -86,7 +86,7 @@ export function App() {
         : route.name === "player"
           ? text.openPlayer
           : text.shelf;
-    document.title = `${title} · ${text.appName} · ${text.preview}`;
+    document.title = `${title} · ${text.appName}`;
   }, [route, books, text]);
 
   useEffect(() => {

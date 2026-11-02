@@ -1,7 +1,7 @@
 {
   "name": "Library Listen Looseleaf",
   "short_name": "Library Listen Looseleaf",
-  "description": "Preview bookshelf for the shared Google Drive Library folder. Waiting for approval.",
+  "description": "Notebook-paper bookshelf for the shared Google Drive Library folder.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#a8c8bb",
