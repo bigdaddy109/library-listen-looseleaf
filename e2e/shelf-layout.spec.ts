@@ -25,6 +25,42 @@ test.describe("signed-in shelf", () => {
           if (!paper) return { problems: ["missing shelf paper"], vw, scrollWidth };
           const paperBox = paper.getBoundingClientRect();
 
+          const appName = document.querySelector("[data-app-name]");
+          if (!(appName instanceof HTMLElement)) problems.push("missing product name");
+          else {
+            const shown = (appName.textContent ?? "").replace(/\s+/g, " ").trim();
+            if (shown !== "Library Listen Looseleaf") problems.push(`product name is ${JSON.stringify(shown)}`);
+            if (shown.includes("-")) problems.push("product name is hyphenated");
+            const glyphs: { ch: string; y: number | null }[] = [];
+            const walker = document.createTreeWalker(appName, NodeFilter.SHOW_TEXT);
+            while (walker.nextNode()) {
+              const node = walker.currentNode;
+              const raw = node.textContent ?? "";
+              for (let i = 0; i < raw.length; i++) {
+                const ch = raw[i] ?? "";
+                if (!ch.trim()) {
+                  glyphs.push({ ch: " ", y: null });
+                  continue;
+                }
+                const range = document.createRange();
+                range.setStart(node, i);
+                range.setEnd(node, i + 1);
+                const box = range.getClientRects()[0];
+                glyphs.push({ ch, y: box ? box.top : null });
+              }
+            }
+            for (let i = 1; i < glyphs.length; i++) {
+              const prev = glyphs[i - 1];
+              const cur = glyphs[i];
+              if (!prev || !cur || prev.ch === " " || cur.ch === " ") continue;
+              if (prev.y != null && cur.y != null && Math.abs(prev.y - cur.y) > 1) {
+                problems.push(`product name breaks inside a word before "${cur.ch}"`);
+              }
+            }
+            const nameBox = appName.getBoundingClientRect();
+            if (nameBox.left < -1 || nameBox.right > vw + 1) problems.push("product name overflows the viewport");
+          }
+
           if (scrollWidth > vw + 1) problems.push(`page scrolls sideways (${scrollWidth}px > ${vw}px)`);
           if (paperBox.left < -1 || paperBox.right > vw + 1) {
             problems.push(`paper outside viewport (${paperBox.left.toFixed(1)}..${paperBox.right.toFixed(1)}, viewport ${vw})`);

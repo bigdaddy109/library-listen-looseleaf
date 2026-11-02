@@ -100,7 +100,14 @@ export function Frame({
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="font-hand text-sm">{text.appName}</p>
+            <p data-app-name="" className="font-hand text-sm hyphens-none break-keep text-wrap">
+              {text.appName.split(" ").map((word, index) => (
+                <span key={`${word}-${index}`}>
+                  {index > 0 ? " " : null}
+                  <span className="whitespace-nowrap">{word}</span>
+                </span>
+              ))}
+            </p>
             <h1 className="font-script text-4xl leading-none sm:text-5xl">{heading}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
