@@ -4,7 +4,7 @@
 
 現在用的仍是 [https://bigdaddy109.github.io/library-listen/](https://bigdaddy109.github.io/library-listen/)。
 
-預覽網址：<https://bigdaddy109.github.io/library-listen-looseleaf/>
+預覽網址預計是 <https://bigdaddy109.github.io/library-listen-looseleaf/>。這個倉庫目前是私人的，而且這次的權限開不了 GitHub Pages，所以網址要等你在倉庫設定裡打開 Pages 才會活。步驟在下面。
 
 這一版用筆記本紙的畫面（Looseleaf），讀同一個 Google 雲端硬碟資料夾：名稱是 `Library`，只讀。系列資料夾的樣子是 `中文-English/listen/書名/`，旁邊可以有電子書和封面。例如 `上學不容易-Middle-School`、`手斧男孩-Hatchet`。
 
@@ -15,6 +15,16 @@
 ## 這一版還不是正式站
 
 請先看預覽、再決定要不要換掉舊站。沒有合併這個 pull request 之前，舊站不會被換掉。
+
+## 打開 GitHub Pages
+
+1. 打開這個倉庫的 Settings → Pages。
+2. Build and deployment 選 **GitHub Actions**。
+3. 到 Actions →「preview-pages」→ Run workflow，選 `cursor/looseleaf-preview-bc89`。
+4. 跑完之後，預覽就在 <https://bigdaddy109.github.io/library-listen-looseleaf/>。頁面上會寫「預覽，等待核准」。
+5. 如果 Pages 那一頁要你升級方案，或根本沒有 Pages：這個倉庫是私人的。免費私人倉庫常常不能開 Pages。可以改成公開（裡面沒有你的音檔，只有靜音示範），或等方案允許再開。
+
+還沒打開之前，舊站不會被換掉。這個 pull request 也不要合併。
 
 ## Google 登入要做的事
 

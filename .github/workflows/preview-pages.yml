@@ -1,10 +1,9 @@
 name: preview-pages
 
+# Push does not publish. This token cannot turn GitHub Pages on.
+# After Pages is set to GitHub Actions, run this workflow by hand from the Actions tab.
 on:
-  push:
-    branches:
-      - cursor/looseleaf-preview-bc89
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
