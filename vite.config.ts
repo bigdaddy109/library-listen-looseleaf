@@ -28,6 +28,11 @@ export default defineConfig({
       },
     },
   ],
+  preview: {
+    host: "127.0.0.1",
+    port: 4173,
+    allowedHosts: true,
+  },
   resolve: { alias: { "@": path.resolve(root, "src") } },
   test: {
     environment: "node",
