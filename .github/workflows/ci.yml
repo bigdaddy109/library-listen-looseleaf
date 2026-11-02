@@ -21,3 +21,7 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: "true"
+      - name: Install browser for shelf layout
+        run: npx playwright install --with-deps chromium
+      - name: Shelf layout at 320 and 375
+        run: npm run test:shelf

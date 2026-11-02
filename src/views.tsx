@@ -25,9 +25,10 @@ function coverKind(book: Book) {
   return "book";
 }
 
-export function Cover({ book }: { book: Book }) {
+export function Cover({ book, photo = true }: { book: Book; photo?: boolean }) {
   const kind = coverKind(book);
   const stock = kind === "woods" ? "kraft" : kind === "school" ? "pad" : "card";
+  const showPhoto = photo && !!book.coverUrl;
   return (
     <Paper
       stock={stock}
@@ -36,13 +37,14 @@ export function Cover({ book }: { book: Book }) {
       tape={false}
       shadow="card"
       seed={book.id}
-      className="flex aspect-[3/4] w-24 shrink-0 flex-col justify-between p-2 text-ink"
+      data-cover={showPhoto ? "photo" : "designed"}
+      className={`flex aspect-[3/4] w-24 shrink-0 flex-col justify-between p-2 text-ink${showPhoto ? " overflow-hidden" : ""}`}
     >
       <CoverMark kind={kind} />
-      {book.coverUrl ? (
-        <img src={book.coverUrl} alt="" className="h-10 w-full object-cover" />
+      {showPhoto ? (
+        <img src={book.coverUrl} alt="" className="h-10 w-full max-w-full object-cover" />
       ) : (
-        <p className="font-script text-sm leading-tight">{book.seriesZh === book.seriesEn ? book.title : book.seriesZh}</p>
+        <p className="font-script text-sm leading-tight break-words">{book.seriesZh === book.seriesEn ? book.title : book.seriesZh}</p>
       )}
     </Paper>
   );
@@ -51,7 +53,7 @@ export function Cover({ book }: { book: Book }) {
 function CoverMark({ kind }: { kind: "woods" | "school" | "book" }) {
   if (kind === "woods") {
     return (
-      <svg viewBox="0 0 64 36" aria-hidden="true" className="h-8 w-full">
+      <svg data-cover-mark="" viewBox="0 0 64 36" aria-hidden="true" className="h-8 w-full">
         <path d="M6 32 18 12 30 32M26 32 40 8 56 32" fill="none" stroke="currentColor" strokeWidth="2" />
         <path d="M32 32v-6" stroke="currentColor" strokeWidth="2" />
       </svg>
@@ -59,14 +61,14 @@ function CoverMark({ kind }: { kind: "woods" | "school" | "book" }) {
   }
   if (kind === "school") {
     return (
-      <svg viewBox="0 0 64 36" aria-hidden="true" className="h-8 w-full">
+      <svg data-cover-mark="" viewBox="0 0 64 36" aria-hidden="true" className="h-8 w-full">
         <path d="M8 30 V16 L32 8 56 16 V30" fill="none" stroke="currentColor" strokeWidth="2" />
         <path d="M28 30 v-8 h8 v8" fill="none" stroke="currentColor" strokeWidth="2" />
       </svg>
     );
   }
   return (
-    <svg viewBox="0 0 64 36" aria-hidden="true" className="h-8 w-full">
+    <svg data-cover-mark="" viewBox="0 0 64 36" aria-hidden="true" className="h-8 w-full">
       <path d="M14 8 h28 v20 H14 z" fill="none" stroke="currentColor" strokeWidth="2" />
       <path d="M20 14 h16 M20 20 h12" stroke="currentColor" strokeWidth="2" />
     </svg>
@@ -91,7 +93,7 @@ export function Frame({
   children: ReactNode;
 }) {
   return (
-    <Paper as="main" stock="paper" rules="ruled" tape="top" tilt={false} className="mx-auto mt-8 mb-10 min-h-[calc(100dvh-4.5rem)] max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
+    <Paper as="main" stock="paper" rules="ruled" tape="top" tilt={false} className="mx-auto mt-8 mb-10 w-full min-w-0 min-h-[calc(100dvh-4.5rem)] max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
       <header className="mb-6 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{mode === "drive" ? text.yourLibrary : text.demoShelf}</Badge>
@@ -170,9 +172,9 @@ export function Shelf({
     .sort((a, b) => (progress[b.id]?.updatedAt || "").localeCompare(progress[a.id]?.updatedAt || ""))[0];
 
   return (
-    <div className="flex flex-col gap-5" data-screen="shelf">
+    <div className="flex w-full min-w-0 flex-col gap-5" data-screen="shelf">
       {mode === "demo" ? (
-        <Card tilt={false} stock="slip">
+        <Card tilt={false} stock="slip" className="w-full min-w-0 max-w-full">
           <CardHeader>
             <CardTitle>{text.demoShelf}</CardTitle>
             <CardDescription>{text.demoBanner}</CardDescription>
@@ -189,7 +191,7 @@ export function Shelf({
       ) : null}
 
       {error ? (
-        <Card tilt={false}>
+        <Card tilt={false} className="w-full min-w-0 max-w-full">
           <CardHeader>
             <CardTitle>{text.retry}</CardTitle>
             <CardDescription>{error}</CardDescription>
@@ -201,7 +203,7 @@ export function Shelf({
       ) : null}
 
       {folders.length > 1 ? (
-        <Card tilt={false}>
+        <Card tilt={false} className="w-full min-w-0 max-w-full">
           <CardHeader>
             <CardTitle>Library</CardTitle>
             <CardDescription>{text.pickFolder}</CardDescription>
@@ -235,10 +237,10 @@ export function Shelf({
       </div>
 
       {continued ? (
-        <Card tilt={false} stock="sticky-yellow" rules="none">
+        <Card tilt={false} stock="sticky-yellow" rules="none" className="w-full min-w-0 max-w-full">
           <CardHeader>
             <CardDescription>{text.continue}</CardDescription>
-            <CardTitle>{continued.title}</CardTitle>
+            <CardTitle className="break-words">{continued.title}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             <p className="text-sm">{seriesLine(continued)}</p>
@@ -247,9 +249,9 @@ export function Shelf({
             </p>
             <Progress value={(bookFraction(continued, progress) ?? 0) * 100} />
           </CardContent>
-          <CardFooter>
-            <Button onClick={() => onOpen(continued.id)}>
-              {text.openBook} {continued.title}
+          <CardFooter className="min-w-0">
+            <Button className="h-auto w-full min-w-0 max-w-full whitespace-normal text-center sm:w-auto" aria-label={continued.title} onClick={() => onOpen(continued.id)}>
+              {text.openBook}
             </Button>
           </CardFooter>
         </Card>
@@ -290,28 +292,28 @@ function BookGroups({
     else groups.push({ label, books: [book] });
   }
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex w-full min-w-0 flex-col gap-6">
       {groups.map((group) => (
-        <section key={group.label} className="flex flex-col gap-3">
+        <section key={group.label} className="flex w-full min-w-0 flex-col gap-3">
           <Separator>{group.label}</Separator>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
             {group.books.map((book) => {
               const fraction = bookFraction(book, progress);
               return (
-                <Card key={book.id} tilt={false} className="gap-3 py-4">
-                  <CardContent className="flex gap-3">
-                    <Cover book={book} />
+                <Card key={book.id} tilt={false} className="w-full min-w-0 max-w-full gap-3 py-4">
+                  <CardContent className="flex min-w-0 gap-3">
+                    <Cover book={book} photo={false} />
                     <div className="min-w-0 flex-1">
-                      <CardDescription>{seriesLine(book)}</CardDescription>
-                      <CardTitle className="mt-1 text-[1.45rem]">{book.title}</CardTitle>
+                      <CardDescription className="break-words">{seriesLine(book)}</CardDescription>
+                      <CardTitle className="mt-1 break-words text-[1.45rem]">{book.title}</CardTitle>
                       <p className="mt-2 text-sm">{chapterCount(lang, book.chapters.length)}</p>
-                      {book.ebookName ? <p className="text-sm text-muted-foreground">{text.ebook}</p> : null}
+                      {book.ebookName ? <p className="text-sm text-muted-foreground break-words">{text.ebook}</p> : null}
                       {fraction != null ? <Progress className="mt-3" value={fraction * 100} /> : null}
                     </div>
                   </CardContent>
-                  <CardFooter>
-                    <Button className="w-full sm:w-auto" onClick={() => onOpen(book.id)}>
-                      {text.openBook} {book.title}
+                  <CardFooter className="min-w-0">
+                    <Button className="h-auto w-full min-w-0 max-w-full whitespace-normal text-center sm:w-auto" aria-label={book.title} onClick={() => onOpen(book.id)}>
+                      {text.openBook}
                     </Button>
                   </CardFooter>
                 </Card>

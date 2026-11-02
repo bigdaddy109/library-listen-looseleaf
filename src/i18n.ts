@@ -14,7 +14,7 @@ const dict = {
     signOut: "登出",
     signingIn: "正在打開 Google…",
     scanning: "正在讀 Library 資料夾…",
-    openBook: "打開",
+    openBook: "開啟",
     backShelf: "回書架",
     backBook: "回這一本",
     openPlayer: "打開播放器",

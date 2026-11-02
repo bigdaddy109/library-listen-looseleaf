@@ -62,11 +62,11 @@ function Separator({
       data-variant={variant}
       decorative={decorative}
       orientation={orientation}
-      className={cn("flex shrink-0 items-center gap-3 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:flex-col", className)}
+      className={cn("flex min-w-0 shrink-0 items-center gap-3 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:flex-col", className)}
       {...props}
     >
       <Rule variant={variant} orientation={orientation} seed={seed === undefined ? undefined : `${seed}:a`} data-orientation={orientation} data-slot="separator-line" className={vertical ? "data-[orientation=vertical]:h-auto flex-1" : "data-[orientation=horizontal]:w-auto flex-1"} />
-      <span data-slot="separator-label" className="shrink-0 font-hand text-sm leading-none font-bold text-muted-foreground select-none">
+      <span data-slot="separator-label" className="max-w-full shrink-0 text-center font-hand text-sm leading-none font-bold break-words text-muted-foreground select-none">
         {children}
       </span>
       <Rule variant={variant} orientation={orientation} seed={seed === undefined ? undefined : `${seed}:b`} data-orientation={orientation} data-slot="separator-line" className={vertical ? "data-[orientation=vertical]:h-auto flex-1" : "data-[orientation=horizontal]:w-auto flex-1"} />
