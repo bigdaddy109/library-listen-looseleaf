@@ -4,7 +4,11 @@ import {
   applyProgress,
   formatClock,
   planChapterChoice,
+  planChapterFinished,
+  planContinueNext,
   planPausedOpen,
+  planStepChapter,
+  planStopAfterChapter,
   saveProgressMap,
   type Book,
   type ProgressMap,
@@ -27,6 +31,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   const [cue, setCue] = useState<Cue | null>(null);
   const [paused, setPaused] = useState(true);
   const [started, setStarted] = useState(false);
+  const [chapterEnded, setChapterEnded] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [duration, setDuration] = useState(0);
   const armed = useRef(false);
@@ -121,22 +126,33 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     const onPlay = () => {
       setStarted(true);
       setPaused(false);
+      setChapterEnded(false);
+    };
+    const onEnded = () => {
+      wantPlayRef.current = false;
+      setPaused(true);
+      const count = booksRef.current.find((item) => item.id === cue.bookId)?.chapters.length ?? 0;
+      const plan = planChapterFinished(count, cue.chapterIndex);
+      setChapterEnded(plan.offerNext);
     };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("play", onPlay);
+    audio.addEventListener("ended", onEnded);
     return () => {
       cancelled = true;
       if (onMeta) audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("ended", onEnded);
     };
     // chapter.url identity is the cue. Re-running on progress would jump backward.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cue?.token, chapter?.url]);
 
   function arm(bookId: string, chapterIndex: number, seek: number, play = false) {
+    setChapterEnded(false);
     wantPlayRef.current = play;
     lastSaved.current = seek;
     setCue({ bookId, chapterIndex, seek, token: Date.now() });
@@ -235,6 +251,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   }
 
   function seek(nextSeconds: number) {
+    setChapterEnded(false);
     const audio = audioRef.current;
     const limit = duration > 0 ? duration : nextSeconds;
     const target = Math.min(Math.max(0, nextSeconds), limit || nextSeconds);
@@ -257,14 +274,37 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     seek(seconds + delta);
   }
 
+  function playPlanned(bookId: string, chapterIndex: number, seekTo: number) {
+    const target = booksRef.current.find((item) => item.id === bookId);
+    const next = target?.chapters[chapterIndex];
+    arm(bookId, chapterIndex, seekTo, true);
+    if (next?.url) primePlayback(next.url);
+  }
+
   function changeChapter(delta: number) {
     if (!book || !cue) return;
-    const index = Math.min(book.chapters.length - 1, Math.max(0, cue.chapterIndex + delta));
-    const next = book.chapters[index];
-    if (!next) return;
-    const saved = progressRef.current[book.id]?.chapters?.[next.id];
-    const spot = saved && Number.isFinite(saved.positionSeconds) ? saved.positionSeconds : 0;
-    arm(book.id, index, spot);
+    const plan = planStepChapter(book, progressRef.current, cue.chapterIndex, delta);
+    if (!plan.moved || !plan.autoplay) return;
+    playPlanned(book.id, plan.chapterIndex, plan.seekSeconds);
+  }
+
+  function continueNext() {
+    if (!book || !cue) return;
+    const plan = planContinueNext(book, progressRef.current, cue.chapterIndex);
+    if (!plan.autoplay) {
+      stopAfterChapter();
+      return;
+    }
+    playPlanned(book.id, plan.chapterIndex, plan.seekSeconds);
+  }
+
+  function stopAfterChapter() {
+    const plan = planStopAfterChapter();
+    if (plan.autoplay) return;
+    wantPlayRef.current = false;
+    audioRef.current?.pause();
+    setPaused(true);
+    setChapterEnded(false);
   }
 
   return {
@@ -274,6 +314,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     chapter,
     paused,
     started,
+    chapterEnded,
     seconds,
     duration,
     clock: formatClock(seconds),
@@ -287,5 +328,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     seek,
     skip,
     changeChapter,
+    continueNext,
+    stopAfterChapter,
   };
 }

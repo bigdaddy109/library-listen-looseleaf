@@ -85,6 +85,7 @@ export function Frame({
   heading,
   onSignOut,
   mini = false,
+  miniChoice = false,
   children,
 }: {
   text: Copy;
@@ -94,6 +95,7 @@ export function Frame({
   heading: string;
   onSignOut: () => void;
   mini?: boolean;
+  miniChoice?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -137,7 +139,7 @@ export function Frame({
         </div>
       </header>
       {children}
-      {mini ? <div aria-hidden="true" className="ll-mini-spacer" /> : null}
+      {mini ? <div aria-hidden="true" className={miniChoice ? "ll-mini-spacer ll-mini-choice" : "ll-mini-spacer"} /> : null}
     </Paper>
   );
 }
@@ -482,6 +484,9 @@ export function PlayerScreen({
   onSkip,
   onSeek,
   sheet = false,
+  chapterEnded = false,
+  onContinue,
+  onStopHere,
 }: {
   book: Book;
   text: Copy;
@@ -499,6 +504,9 @@ export function PlayerScreen({
   onSkip: (delta: number) => void;
   onSeek: (seconds: number) => void;
   sheet?: boolean;
+  chapterEnded?: boolean;
+  onContinue?: () => void;
+  onStopHere?: () => void;
 }) {
   const max = duration > 0 ? duration : Math.max(seconds, 1);
   const remainingClock = formatClock(Math.max(0, (duration > 0 ? duration : 0) - seconds));
@@ -525,7 +533,8 @@ export function PlayerScreen({
           </div>
         </CardContent>
         <CardContent className="flex flex-col gap-3">
-          {paused ? <p className="text-sm">{text.waiting}</p> : null}
+          {chapterEnded ? <ChapterEndChoice text={text} onContinue={onContinue} onStopHere={onStopHere} /> : null}
+          {paused && !chapterEnded ? <p className="text-sm">{text.waiting}</p> : null}
           <p className="max-w-full font-script text-4xl leading-none break-words" data-testid="playhead">
             {clock}
             <span className="px-2 font-hand text-lg text-muted-foreground">/ {sheet ? remainingClock : durationClock}</span>
@@ -627,6 +636,35 @@ function Marquee({ text }: { text: string }) {
   );
 }
 
+function ChapterEndChoice({
+  text,
+  onContinue,
+  onStopHere,
+}: {
+  text: Copy;
+  onContinue?: () => void;
+  onStopHere?: () => void;
+}) {
+  return (
+    <div data-chapter-end="" className="flex flex-col gap-2">
+      <p className="text-sm">{text.chapterDone}</p>
+      <div className="grid min-w-0 grid-cols-2 gap-2">
+        <Button type="button" className="h-auto min-w-0 whitespace-normal px-2 py-2 text-center leading-tight" onClick={onContinue}>
+          {text.playNext}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-auto min-w-0 whitespace-normal px-2 py-2 text-center leading-tight"
+          onClick={onStopHere}
+        >
+          {text.stopHere}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function MiniPlayer({
   book,
   chapter,
@@ -634,8 +672,11 @@ export function MiniPlayer({
   paused,
   seconds,
   duration,
+  chapterEnded = false,
   onToggle,
   onExpand,
+  onContinue,
+  onStopHere,
 }: {
   book: Book;
   chapter: string;
@@ -643,8 +684,11 @@ export function MiniPlayer({
   paused: boolean;
   seconds: number;
   duration: number;
+  chapterEnded?: boolean;
   onToggle: () => void;
   onExpand: () => void;
+  onContinue?: () => void;
+  onStopHere?: () => void;
 }) {
   const pct = duration > 0 ? Math.min(100, Math.max(0, (seconds / duration) * 100)) : 0;
   return (
@@ -653,6 +697,11 @@ export function MiniPlayer({
       data-paused={paused ? "true" : "false"}
       className="fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)]"
     >
+      {chapterEnded ? (
+        <div className="relative z-20 px-3 pt-3">
+          <ChapterEndChoice text={text} onContinue={onContinue} onStopHere={onStopHere} />
+        </div>
+      ) : null}
       <Paper tilt={false} tape={false} shadow="card" stock="slip" className="ll-mini-bar relative w-full overflow-hidden rounded-none px-3">
         <button
           type="button"

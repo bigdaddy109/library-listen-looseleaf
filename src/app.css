@@ -18,6 +18,10 @@ body {
   height: calc(clamp(3.5rem, 10dvh, 4.5rem) + env(safe-area-inset-bottom));
 }
 
+.ll-mini-choice {
+  height: calc(clamp(3.5rem, 10dvh, 4.5rem) + 7.5rem + env(safe-area-inset-bottom));
+}
+
 .ll-mini-bar {
   height: clamp(3.5rem, 10dvh, 4.5rem);
 }

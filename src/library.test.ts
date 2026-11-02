@@ -3,7 +3,11 @@ import {
   applyProgress,
   buildLibrary,
   planChapterChoice,
+  planChapterFinished,
+  planContinueNext,
   planPausedOpen,
+  planStepChapter,
+  planStopAfterChapter,
   resolveBookMedia,
   seriesNames,
   type Entry,
@@ -98,6 +102,46 @@ describe("buildLibrary", () => {
     const school = books.find((book) => book.folder.startsWith("Middle School 01"));
     expect(school?.ebookName).toBe("Middle School 01 - First Day.epub");
     expect(school?.coverFile?.name).toBe("cover.jpg");
+  });
+});
+
+describe("chapter end", () => {
+  const hatchet = buildLibrary(sample).find((book) => book.id === "hatchet/hatchet");
+  if (!hatchet) throw new Error("missing hatchet");
+
+  it("does not auto-advance when a chapter ends", () => {
+    const finished = planChapterFinished(hatchet.chapters.length, 0);
+    expect(finished.autoplay).toBe(false);
+    expect(finished.offerNext).toBe(true);
+    expect(finished.nextIndex).toBe(1);
+    const last = planChapterFinished(hatchet.chapters.length, hatchet.chapters.length - 1);
+    expect(last.autoplay).toBe(false);
+    expect(last.offerNext).toBe(false);
+    expect(last.nextIndex).toBeNull();
+  });
+
+  it("plays the next chapter when the listener continues", () => {
+    const plan = planContinueNext(hatchet, {}, 0);
+    expect(plan.autoplay).toBe(true);
+    expect(plan.chapterIndex).toBe(1);
+    expect(plan.chapterTitle).toBe("The Crash");
+  });
+
+  it("does not play when the listener stops", () => {
+    expect(planStopAfterChapter().autoplay).toBe(false);
+    const stayed = planContinueNext(hatchet, {}, hatchet.chapters.length - 1);
+    expect(stayed.autoplay).toBe(false);
+  });
+
+  it("starts playback when Next chapter is pressed", () => {
+    const next = planStepChapter(hatchet, {}, 0, 1);
+    expect(next.autoplay).toBe(true);
+    expect(next.moved).toBe(true);
+    expect(next.chapterIndex).toBe(1);
+    expect(next.chapterTitle).toBe("The Crash");
+    const same = planStepChapter(hatchet, {}, 0, -1);
+    expect(same.autoplay).toBe(false);
+    expect(same.moved).toBe(false);
   });
 });
 

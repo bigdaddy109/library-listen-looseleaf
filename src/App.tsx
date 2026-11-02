@@ -237,7 +237,16 @@ export function App() {
 
   return (
     <InkProvider>
-      <Frame text={text} lang={lang} setLang={setLang} mode={mode} heading={heading} onSignOut={signOut} mini={showMini}>
+      <Frame
+        text={text}
+        lang={lang}
+        setLang={setLang}
+        mode={mode}
+        heading={heading}
+        onSignOut={signOut}
+        mini={showMini}
+        miniChoice={showMini && player.chapterEnded}
+      >
         {route.name === "shelf" ? (
           <Shelf
             text={text}
@@ -296,6 +305,9 @@ export function App() {
             onNext={() => player.changeChapter(1)}
             onSkip={(delta) => player.skip(delta)}
             onSeek={(seconds) => player.seek(seconds)}
+            chapterEnded={player.chapterEnded}
+            onContinue={() => player.continueNext()}
+            onStopHere={() => player.stopAfterChapter()}
           />
         ) : null}
       </Frame>
@@ -307,8 +319,11 @@ export function App() {
           paused={player.paused}
           seconds={player.seconds}
           duration={player.duration}
+          chapterEnded={player.chapterEnded}
           onToggle={() => void player.toggle()}
           onExpand={() => setPlayerOpen(true)}
+          onContinue={() => player.continueNext()}
+          onStopHere={() => player.stopAfterChapter()}
         />
       ) : null}
       {playerOpen && player.book ? (
@@ -330,6 +345,9 @@ export function App() {
             onNext={() => player.changeChapter(1)}
             onSkip={(delta) => player.skip(delta)}
             onSeek={(seconds) => player.seek(seconds)}
+            chapterEnded={player.chapterEnded}
+            onContinue={() => player.continueNext()}
+            onStopHere={() => player.stopAfterChapter()}
           />
         </PlayerSheet>
       ) : null}
