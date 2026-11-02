@@ -4,7 +4,7 @@ export const LANG_KEY = "librarylisten.v2.lang";
 
 const dict = {
   "zh-TW": {
-    appName: "Library Listen",
+    appName: "Library Listen Looseleaf",
     preview: "預覽，等待核准",
     notLive: "這不是正式站。現在用的仍是舊的 Library Listen。",
     shelf: "書架",
@@ -53,7 +53,7 @@ const dict = {
     chapterWord: "章",
   },
   en: {
-    appName: "Library Listen",
+    appName: "Library Listen Looseleaf",
     preview: "Preview, waiting for approval",
     notLive: "This is not the live site. The current Library Listen stays where it is.",
     shelf: "Shelf",

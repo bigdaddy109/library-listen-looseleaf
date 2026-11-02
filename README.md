@@ -1,6 +1,6 @@
-# Library Listen 預覽
+# Library Listen Looseleaf 預覽
 
-這是 Library Listen 的下一版**預覽**，還沒有取代現在用的網站。
+這是 **Library Listen Looseleaf** 的預覽，還沒有取代現在用的網站。
 
 現在用的仍是 [https://bigdaddy109.github.io/library-listen/](https://bigdaddy109.github.io/library-listen/)。
 
