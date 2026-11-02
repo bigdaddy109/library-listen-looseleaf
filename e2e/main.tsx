@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { InkProvider } from "@/lib/ink/react";
-import type { Book, ProgressMap } from "../src/library";
+import { buildLibrary, type Book, type Entry, type ProgressMap } from "../src/library";
 import { copy, type Lang } from "../src/i18n";
 import { Frame, Shelf } from "../src/views";
 import "../src/app.css";
@@ -53,8 +53,23 @@ const progress: ProgressMap = {
   },
 };
 
-const langParam = new URLSearchParams(location.search).get("lang");
+const params = new URLSearchParams(location.search);
+const langParam = params.get("lang");
 const lang: Lang = langParam === "en" ? "en" : "zh-TW";
+
+function fixtureEntry(path: string): Entry {
+  const name = path.split("/").pop() || path;
+  return { path, file: { name, size: 1200 } };
+}
+
+const groupedBooks = buildLibrary([
+  fixtureEntry("Library/Immune/listen/Immune Part01/01.mp3"),
+  fixtureEntry("Library/Immune/listen/Immune Part02/02.mp3"),
+  fixtureEntry("Library/上學不容易-Middle-School/listen/Middle School 01 - First Day/01.mp3"),
+  fixtureEntry("Library/上學不容易-Middle-School/listen/Middle School 02 - Get Me Out/01.mp3"),
+]);
+
+const shelfBooks = params.get("fixture") === "grouped" ? groupedBooks : books;
 
 function Harness() {
   const text = copy(lang);
@@ -64,7 +79,7 @@ function Harness() {
         <Shelf
           text={text}
           lang={lang}
-          books={books}
+          books={shelfBooks}
           progress={progress}
           mode="drive"
           query=""

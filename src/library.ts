@@ -121,6 +121,92 @@ export function titleFromFolder(folder: string) {
   return spaceEnglish(folder) || folder;
 }
 
+type PartMark = { stem: string; order: number; kind: "part" | "juan" | "half" };
+
+/**
+ * Titles that are the same book split by a part marker.
+ * `Immune Part01` and `Immune Part02` share the stem `Immune`.
+ * A bare volume number, as in `Middle School 01`, is not a part marker.
+ */
+export function partStem(title: string): PartMark | null {
+  const name = title.normalize("NFC").replace(/\s+/g, " ").trim();
+  const part = name.match(/^(.*?)(?:\s+|[-_])?(?:part|pt\.?)\s*0*(\d+)\s*$/i);
+  if (part && part[2]) {
+    return { stem: cleanStem(part[1] ?? ""), order: Number(part[2]), kind: "part" };
+  }
+  const juan = name.match(/^(.*?)第\s*0*(\d+)\s*部\s*$/);
+  if (juan && juan[2]) {
+    return { stem: cleanStem(juan[1] ?? ""), order: Number(juan[2]), kind: "juan" };
+  }
+  const half = name.match(/^(.*?)(?:\s+|[-_])?([上下])$/);
+  if (half?.[2] && cleanStem(half[1] ?? "")) {
+    return { stem: cleanStem(half[1] ?? ""), order: half[2] === "上" ? 1 : 2, kind: "half" };
+  }
+  return null;
+}
+
+function cleanStem(value: string) {
+  return value.replace(/[\s_-]+$/g, "").replace(/^[\s_-]+/g, "").trim();
+}
+
+function partLabel(mark: PartMark) {
+  if (mark.kind === "juan") return `第${mark.order}部`;
+  if (mark.kind === "half") return mark.order === 1 ? "上" : "下";
+  return `Part ${String(mark.order).padStart(2, "0")}`;
+}
+
+function mergePartBooks(books: Book[]): Book[] {
+  const alone: Book[] = [];
+  const buckets = new Map<string, Book[]>();
+  for (const book of books) {
+    const mark = partStem(book.title);
+    if (!mark) {
+      alone.push(book);
+      continue;
+    }
+    const key = `${book.seriesFolder}\0${mark.stem.toLowerCase()}`;
+    const list = buckets.get(key) ?? [];
+    list.push(book);
+    buckets.set(key, list);
+  }
+  const merged: Book[] = [];
+  for (const list of buckets.values()) {
+    if (list.length < 2) {
+      if (list[0]) alone.push(list[0]);
+      continue;
+    }
+    const ordered = list
+      .map((book) => ({ book, mark: partStem(book.title) }))
+      .filter((item): item is { book: Book; mark: PartMark } => item.mark != null)
+      .sort((a, b) => a.mark.order - b.mark.order || a.book.title.localeCompare(b.book.title, "en"));
+    const first = ordered[0];
+    if (!first) continue;
+    const stem = first.mark.stem || first.book.seriesEn || first.book.seriesZh;
+    const chapters: Chapter[] = [];
+    for (const item of ordered) {
+      const label = partLabel(item.mark);
+      for (const chapter of item.book.chapters) {
+        chapters.push({
+          ...chapter,
+          index: chapters.length,
+          title: item.book.chapters.length === 1 ? label : chapter.title,
+          id: chapters.some((existing) => existing.id === chapter.id) ? `${item.book.folder}/${chapter.id}` : chapter.id,
+        });
+      }
+    }
+    merged.push({
+      ...first.book,
+      id: `${stableId(first.book.seriesEn)}/${stableId(stem)}`,
+      folder: stem,
+      title: stem,
+      chapters,
+      coverFile: ordered.find((item) => item.book.coverFile)?.book.coverFile ?? null,
+      ebookName: ordered.find((item) => item.book.ebookName)?.book.ebookName ?? null,
+    });
+  }
+  return [...alone, ...merged];
+}
+
 function locateListen(parts: string[]) {
   const idx = parts.map((part) => part.toLowerCase()).lastIndexOf("listen");
   if (idx < 0) return null;
@@ -174,7 +260,7 @@ type Group = {
 export function buildLibrary(entries: Entry[]): Book[] {
   const groups = new Map<string, Group>();
   const ebooks = new Map<string, Entry>();
-  const keyOf = (series: string, book: string) => `${series}::${slug(book)}`;
+  const keyOf = (series: string, book: string) => `${series}::${stableId(book)}`;
 
   for (const entry of entries) {
     const parts = pathParts(entry.path || entry.file.name);
@@ -209,7 +295,7 @@ export function buildLibrary(entries: Entry[]): Book[] {
     }
     const bookSlug = key.split("::")[1];
     for (const group of groups.values()) {
-      if (!group.ebook && slug(group.bookFolder) === bookSlug) {
+      if (!group.ebook && stableId(group.bookFolder) === bookSlug) {
         group.ebook = entry;
         break;
       }
@@ -242,7 +328,7 @@ export function buildLibrary(entries: Entry[]): Book[] {
     });
   }
 
-  return books.sort(
+  return mergePartBooks(books).sort(
     (a, b) => a.seriesZh.localeCompare(b.seriesZh, "zh-Hant") || a.title.localeCompare(b.title, "en"),
   );
 }

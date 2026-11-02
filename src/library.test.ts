@@ -57,6 +57,39 @@ describe("buildLibrary", () => {
     ]);
   });
 
+  it("collects Immune parts into one book and keeps Middle School titles apart", () => {
+    const grouped = buildLibrary([
+      entry("Library/Immune/listen/Immune Part01/01.mp3"),
+      entry("Library/Immune/listen/Immune Part02/02.mp3"),
+      entry("Library/上學不容易-Middle-School/listen/Middle School 01 - First Day/01.mp3"),
+      entry("Library/上學不容易-Middle-School/listen/Middle School 02 - Get Me Out/01.mp3"),
+    ]);
+    const immune = grouped.filter((book) => book.seriesFolder === "Immune");
+    expect(immune.map((book) => book.title)).toEqual(["Immune"]);
+    expect(immune[0]?.chapters.map((chapter) => chapter.title)).toEqual(["Part 01", "Part 02"]);
+    expect(grouped.filter((book) => book.seriesEn === "Middle School").map((book) => book.title)).toEqual([
+      "Middle School 01 First Day",
+      "Middle School 02 Get Me Out",
+    ]);
+
+    const loose = buildLibrary([
+      entry("Library/Immune/listen/Immune-Part01.mp3"),
+      entry("Library/Immune/listen/Immune-Part02.mp3"),
+    ]);
+    expect(loose.map((book) => book.title)).toEqual(["Immune"]);
+    expect(loose[0]?.chapters.map((chapter) => chapter.title)).toEqual(["Part 01", "Part 02"]);
+
+    const halves = buildLibrary([
+      entry("Library/紅樓夢/listen/紅樓夢上/01.mp3"),
+      entry("Library/紅樓夢/listen/紅樓夢下/01.mp3"),
+      entry("Library/免疫/listen/免疫 第1部/01.mp3"),
+      entry("Library/免疫/listen/免疫 第2部/01.mp3"),
+    ]);
+    expect(halves.find((book) => book.seriesFolder === "紅樓夢")?.title).toBe("紅樓夢");
+    expect(halves.find((book) => book.seriesFolder === "紅樓夢")?.chapters.map((chapter) => chapter.title)).toEqual(["上", "下"]);
+    expect(halves.find((book) => book.seriesFolder === "免疫")?.chapters.map((chapter) => chapter.title)).toEqual(["第1部", "第2部"]);
+  });
+
   it("keeps both languages and pairs the epub", () => {
     const hatchet = books.find((book) => book.id === "hatchet/hatchet");
     expect(hatchet?.seriesZh).toBe("手斧男孩");
