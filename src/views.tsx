@@ -94,7 +94,6 @@ export function Frame({
     <Paper as="main" stock="paper" rules="ruled" tape="top" tilt={false} className="mx-auto mt-8 mb-10 min-h-[calc(100dvh-4.5rem)] max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
       <header className="mb-6 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>{text.preview}</Badge>
           <Badge variant="outline">{mode === "drive" ? text.yourLibrary : text.demoShelf}</Badge>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -123,7 +122,6 @@ export function Frame({
             ) : null}
           </div>
         </div>
-        <p className="max-w-2xl text-sm text-muted-foreground">{text.notLive}</p>
       </header>
       {children}
     </Paper>
