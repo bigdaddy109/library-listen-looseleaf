@@ -340,6 +340,7 @@ export function BookScreen({
   progress,
   activeChapterId,
   clock,
+  paused,
   onBack,
   onOpenPlayer,
   onChapter,
@@ -350,6 +351,7 @@ export function BookScreen({
   progress: ProgressMap;
   activeChapterId: string;
   clock: string;
+  paused: boolean;
   onBack: () => void;
   onOpenPlayer: () => void;
   onChapter: (index: number) => void;
@@ -367,7 +369,7 @@ export function BookScreen({
           <p className="font-hand text-sm">{seriesLine(book)}</p>
           <h2 className="font-script text-4xl leading-none">{book.title}</h2>
           <p>{resumed ? `${text.lastHeard}：${plan.chapterTitle} · ${formatClock(plan.seekSeconds)}` : text.startHere}</p>
-          <p className="text-sm text-muted-foreground">{text.waiting}</p>
+          {paused ? <p className="text-sm text-muted-foreground">{text.waiting}</p> : null}
           {book.ebookName ? <Badge variant="secondary">{text.ebook}</Badge> : null}
           <div className="mt-2 flex flex-wrap gap-2">
             <Button size="lg" onClick={onOpenPlayer}>
@@ -399,14 +401,18 @@ export function BookScreen({
       </ul>
       <p className="text-sm text-muted-foreground">
         {chapterCount(lang, book.chapters.length)}
-        {resumed ? ` · ${text.paused} ${clock}` : ""}
+        {paused
+          ? resumed
+            ? ` · ${text.paused} ${clock}`
+            : ""
+          : ` · ${text.pause} ${clock || formatClock(plan.seekSeconds)}`}
       </p>
       <Dock
         text={text}
         title={book.title}
         chapter={book.chapters.find((chapter) => chapter.id === activeChapterId)?.title || plan.chapterTitle}
         clock={clock || formatClock(plan.seekSeconds)}
-        paused
+        paused={paused}
         onOpen={onOpenPlayer}
       />
     </div>
@@ -465,7 +471,7 @@ export function PlayerScreen({
           </div>
         </CardContent>
         <CardContent className="flex flex-col gap-3">
-          <p className="text-sm">{text.waiting}</p>
+          {paused ? <p className="text-sm">{text.waiting}</p> : null}
           <p className="font-script text-4xl leading-none" data-testid="playhead">
             {clock}
             <span className="px-2 font-hand text-lg text-muted-foreground">/ {durationClock}</span>

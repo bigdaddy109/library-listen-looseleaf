@@ -318,7 +318,7 @@ export function applyProgress(
 
 /**
  * Opening a book cues the saved chapter and does not start audio.
- * `autoplay` is always false. The Play button starts playback later.
+ * `autoplay` is always false. Playback starts later, from Play or a chapter tap.
  */
 export function planPausedOpen(book: Book, progress: ProgressMap | null | undefined) {
   const record = progress?.[book.id] ?? null;
@@ -341,6 +341,63 @@ export function planPausedOpen(book: Book, progress: ProgressMap | null | undefi
   return {
     autoplay: false as const,
     chapterIndex,
+    chapterId: chapter?.id ?? null,
+    seekSeconds: seek,
+    chapterTitle: chapter?.title ?? "",
+  };
+}
+
+export type ChapterChoice = {
+  autoplay: true;
+  /** The chosen chapter is already the current one, so keep the live playhead. */
+  resume: boolean;
+  chapterIndex: number;
+  chapterId: string | null;
+  seekSeconds: number;
+  chapterTitle: string;
+};
+
+/**
+ * Tapping a chapter starts playback.
+ * The chapter already selected resumes from the live position.
+ * A different chapter switches to it and plays from its own saved spot, or the start.
+ * Opening a book stays on `planPausedOpen`, which never autoplays.
+ */
+export function planChapterChoice(
+  book: Book,
+  progress: ProgressMap | null | undefined,
+  chapterIndex: number,
+  live?: { chapterIndex: number; seconds: number } | null,
+): ChapterChoice {
+  const chapters = book.chapters ?? [];
+  const index = chapters.length ? Math.min(chapters.length - 1, Math.max(0, chapterIndex)) : 0;
+  const chapter = chapters[index] ?? null;
+  const resume = !!live && !!chapter && live.chapterIndex === index;
+  if (resume) {
+    const seconds = Number.isFinite(live.seconds) && live.seconds > 0 ? live.seconds : 0;
+    return {
+      autoplay: true,
+      resume: true,
+      chapterIndex: index,
+      chapterId: chapter.id,
+      seekSeconds: seconds,
+      chapterTitle: chapter.title,
+    };
+  }
+  const record = progress?.[book.id] ?? null;
+  const saved = chapter ? (record?.chapters?.[chapter.id] ?? null) : null;
+  let seek = 0;
+  if (saved && Number.isFinite(saved.positionSeconds)) seek = saved.positionSeconds;
+  else if (chapter && record?.chapterId === chapter.id && Number.isFinite(record.positionSeconds)) {
+    seek = record.positionSeconds;
+  }
+  const dur = saved?.chapterDurationSeconds ?? null;
+  if (dur && dur > 0 && seek >= dur - 2) seek = 0;
+  if (!Number.isFinite(seek) || seek < 0) seek = 0;
+  return {
+    autoplay: true,
+    resume: false,
+    chapterIndex: index,
     chapterId: chapter?.id ?? null,
     seekSeconds: seek,
     chapterTitle: chapter?.title ?? "",

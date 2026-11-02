@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyProgress,
   buildLibrary,
+  planChapterChoice,
   planPausedOpen,
   resolveBookMedia,
   seriesNames,
@@ -78,6 +79,41 @@ describe("open paused", () => {
     expect(plan.chapterId).toBe("02 - The Crash.mp3");
     expect(plan.chapterTitle).toBe("The Crash");
     expect(plan.seekSeconds).toBe(45);
+  });
+
+  it("stays paused when a book opens, and plays when a chapter is chosen", () => {
+    const progress: ProgressMap = applyProgress({}, hatchet.id, "02 - The Crash.mp3", 45, 90, "2026-11-02T00:00:00.000Z");
+    const opened = planPausedOpen(hatchet, progress);
+    expect(opened.autoplay).toBe(false);
+    expect(opened.chapterId).toBe("02 - The Crash.mp3");
+    expect(opened.chapterIndex).toBe(1);
+    expect(opened.seekSeconds).toBe(45);
+
+    const same = planChapterChoice(hatchet, progress, opened.chapterIndex, {
+      chapterIndex: opened.chapterIndex,
+      seconds: 12,
+    });
+    expect(same.autoplay).toBe(true);
+    expect(same.resume).toBe(true);
+    expect(same.chapterId).toBe("02 - The Crash.mp3");
+    expect(same.seekSeconds).toBe(12);
+
+    const other = planChapterChoice(hatchet, progress, 0, {
+      chapterIndex: opened.chapterIndex,
+      seconds: 12,
+    });
+    expect(other.autoplay).toBe(true);
+    expect(other.resume).toBe(false);
+    expect(other.chapterIndex).toBe(0);
+    expect(other.chapterId).toBe("01 - The Lake.mp3");
+    expect(other.seekSeconds).toBe(0);
+
+    const finished = applyProgress(progress, hatchet.id, "03 - The Shelter.mp3", 88, 90);
+    const shelter = planChapterChoice(hatchet, finished, 2, { chapterIndex: 1, seconds: 12 });
+    expect(shelter.autoplay).toBe(true);
+    expect(shelter.resume).toBe(false);
+    expect(shelter.chapterId).toBe("03 - The Shelter.mp3");
+    expect(shelter.seekSeconds).toBe(0);
   });
 
   it("does not borrow another chapter's position", () => {

@@ -269,16 +269,10 @@ export function App() {
             progress={progress}
             activeChapterId={player.book?.id === current.id ? (player.chapter?.id ?? "") : ""}
             clock={player.book?.id === current.id ? player.clock : ""}
+            paused={player.book?.id === current.id ? player.paused : true}
             onBack={() => go({ name: "shelf" })}
             onOpenPlayer={() => go({ name: "player", id: current.id })}
-            onChapter={(index) => {
-              const chapter = current.chapters[index];
-              if (!chapter) return;
-              const saved = progress[current.id]?.chapters?.[chapter.id];
-              const dur = saved?.chapterDurationSeconds ?? 0;
-              const spot = saved?.positionSeconds ?? 0;
-              player.arm(current.id, index, dur > 0 && spot >= dur - 2 ? 0 : spot);
-            }}
+            onChapter={(index) => player.chooseChapter(current, index)}
           />
         ) : null}
 

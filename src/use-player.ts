@@ -3,6 +3,7 @@ import { ensureMediaWorker, getAccessToken } from "./drive";
 import {
   applyProgress,
   formatClock,
+  planChapterChoice,
   planPausedOpen,
   saveProgressMap,
   type Book,
@@ -18,8 +19,8 @@ export type Cue = {
 };
 
 /**
- * Cues audio at the saved spot and leaves it paused.
- * `play()` is the only path that calls `audio.play()`.
+ * Cues audio at the saved spot.
+ * Opening a book leaves it paused. Play, and tapping a chapter, start playback.
  */
 export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (next: ProgressMap) => void) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -28,6 +29,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   const [seconds, setSeconds] = useState(0);
   const [duration, setDuration] = useState(0);
   const armed = useRef(false);
+  const wantPlayRef = useRef(false);
   const lastSaved = useRef(-1);
   const booksRef = useRef(books);
   const progressRef = useRef(progress);
@@ -50,11 +52,13 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     if (!audio || !cue || !chapter) return;
     let cancelled = false;
     armed.current = false;
-    setPaused(true);
     setSeconds(cue.seek);
     const savedDur = progressRef.current[cue.bookId]?.chapters?.[chapter.id]?.chapterDurationSeconds ?? 0;
     if (savedDur > 0) setDuration(savedDur);
-    audio.pause();
+    if (!wantPlayRef.current) {
+      setPaused(true);
+      audio.pause();
+    }
 
     const apply = () => {
       if (cancelled) return;
@@ -68,10 +72,19 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
       } catch {
         /* metadata not ready yet */
       }
-      audio.pause();
       armed.current = true;
-      setPaused(true);
       setSeconds(cue.seek);
+      if (wantPlayRef.current) {
+        setPaused(false);
+        void audio.play().then(() => {
+          if (!cancelled && wantPlayRef.current) setPaused(false);
+        }).catch(() => {
+          if (!cancelled && audio.paused) setPaused(true);
+        });
+      } else {
+        audio.pause();
+        setPaused(true);
+      }
     };
 
     const src = new URL(chapter.url, location.href).href;
@@ -82,7 +95,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
         if (token) await ensureMediaWorker(token);
       }
       if (cancelled) return;
-      audio.pause();
+      if (!wantPlayRef.current) audio.pause();
       onMeta = () => apply();
       if (audio.src !== src) audio.src = chapter.url;
       if (audio.readyState >= 1) apply();
@@ -119,12 +132,62 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cue?.token, chapter?.url]);
 
-  function arm(bookId: string, chapterIndex: number, seek: number) {
+  function arm(bookId: string, chapterIndex: number, seek: number, play = false) {
+    wantPlayRef.current = play;
     lastSaved.current = seek;
     setCue({ bookId, chapterIndex, seek, token: Date.now() });
     setSeconds(seek);
-    setPaused(true);
-    audioRef.current?.pause();
+    setPaused(!play);
+    if (!play) audioRef.current?.pause();
+  }
+
+  function primePlayback(url: string) {
+    const audio = audioRef.current;
+    if (!audio || !url) return;
+    wantPlayRef.current = true;
+    setPaused(false);
+    const start = () => {
+      const el = audioRef.current;
+      if (!el || !wantPlayRef.current) return;
+      const src = new URL(url, location.href).href;
+      if (el.src !== src) {
+        armed.current = false;
+        el.src = url;
+      }
+      void el.play().then(() => {
+        if (wantPlayRef.current) setPaused(false);
+      }).catch(() => {
+        /* The cue effect seeks, then calls play() again once the file is ready. */
+      });
+    };
+    if (url.includes("/drive-media/")) {
+      const token = getAccessToken();
+      if (token) {
+        void ensureMediaWorker(token).then(start);
+        return;
+      }
+    }
+    start();
+  }
+
+  function chooseChapter(book: Book, index: number) {
+    const audio = audioRef.current;
+    const live =
+      cue && cue.bookId === book.id
+        ? {
+            chapterIndex: cue.chapterIndex,
+            seconds: audio && armed.current && Number.isFinite(audio.currentTime) ? audio.currentTime : seconds,
+          }
+        : null;
+    const plan = planChapterChoice(book, progressRef.current, index, live);
+    if (!plan.chapterId) return;
+    if (plan.resume) {
+      void play();
+      return;
+    }
+    arm(book.id, plan.chapterIndex, plan.seekSeconds, true);
+    const next = book.chapters[plan.chapterIndex];
+    if (next?.url) primePlayback(next.url);
   }
 
   function armBook(next: Book, map: ProgressMap = progressRef.current) {
@@ -136,17 +199,28 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   async function play() {
     const audio = audioRef.current;
     if (!audio || !chapter?.url) return;
+    wantPlayRef.current = true;
+    setPaused(false);
     if (chapter.url.includes("/drive-media/")) {
       const token = getAccessToken();
       if (token) await ensureMediaWorker(token);
+      if (!wantPlayRef.current) return;
     }
-    armed.current = true;
-    audio.pause();
-    await audio.play();
-    setPaused(false);
+    const src = new URL(chapter.url, location.href).href;
+    if (audio.src !== src) {
+      armed.current = false;
+      audio.src = chapter.url;
+    }
+    try {
+      await audio.play();
+      if (wantPlayRef.current) setPaused(false);
+    } catch {
+      if (wantPlayRef.current && audio.paused) setPaused(true);
+    }
   }
 
   function pause() {
+    wantPlayRef.current = false;
     audioRef.current?.pause();
     setPaused(true);
   }
@@ -201,6 +275,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     durationClock: formatClock(duration),
     armBook,
     arm,
+    chooseChapter,
     play,
     pause,
     toggle,
