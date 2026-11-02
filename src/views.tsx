@@ -427,6 +427,47 @@ export function BookScreen({
   );
 }
 
+function PlayMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6">
+      <path d="M8.2 5.1 18.7 12.1 7.7 18.7Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PauseMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6">
+      <path d="M8 5.3v13.3M16.1 5.1v13.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SkipMark({ dir }: { dir: "back" | "forward" }) {
+  return (
+    <span className={`inline-flex items-center gap-0.5 ${dir === "forward" ? "flex-row-reverse" : ""}`}>
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6">
+        <path
+          d={dir === "back" ? "M16.8 16.2c.6-6.4-6.6-9.6-10.4-5.4" : "M7.2 16.2c-.6-6.4 6.6-9.6 10.4-5.4"}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <path
+          d={dir === "back" ? "M6.2 9.2 6.4 13.4 10.4 12.6" : "M17.8 9.2 17.6 13.4 13.6 12.6"}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span className="font-hand text-sm leading-none">30</span>
+    </span>
+  );
+}
+
 export function PlayerScreen({
   book,
   text,
@@ -481,17 +522,14 @@ export function PlayerScreen({
             <Cover book={book} photo={false} />
           )}
           <div className="min-w-0">
-            <CardDescription>{seriesLine(book)}</CardDescription>
-            <CardTitle className="mt-1">{book.title}</CardTitle>
-            <p className="mt-2 font-hand">{chapterTitle}</p>
-            <Badge className="mt-3" variant={paused ? "secondary" : "default"}>
-              {paused ? text.paused : text.pause}
-            </Badge>
+            <CardDescription className="break-words">{seriesLine(book)}</CardDescription>
+            <CardTitle className="mt-1 break-words">{book.title}</CardTitle>
+            <p className="mt-2 font-hand break-words">{chapterTitle}</p>
           </div>
         </CardContent>
         <CardContent className="flex flex-col gap-3">
           {paused ? <p className="text-sm">{text.waiting}</p> : null}
-          <p className="font-script text-4xl leading-none" data-testid="playhead">
+          <p className="max-w-full font-script text-4xl leading-none break-words" data-testid="playhead">
             {clock}
             <span className="px-2 font-hand text-lg text-muted-foreground">/ {sheet ? remainingClock : durationClock}</span>
           </p>
@@ -503,22 +541,22 @@ export function PlayerScreen({
             value={[Math.min(seconds, max)]}
             onValueChange={(value) => onSeek(value[0] ?? 0)}
           />
-          <div className="grid grid-cols-3 gap-2">
-            <Button variant="outline" onClick={() => onSkip(-30)}>
-              {text.back30}
+          <div className="grid min-w-0 grid-cols-3 gap-2" data-transport="">
+            <Button variant="outline" className="h-12 w-full min-w-0 px-1" aria-label={text.back30} onClick={() => onSkip(-30)}>
+              <SkipMark dir="back" />
             </Button>
-            <Button size="lg" onClick={onToggle} aria-label={paused ? text.play : text.pause}>
-              {paused ? text.play : text.pause}
+            <Button size="lg" className="h-12 w-full min-w-0 px-1" aria-label={paused ? text.play : text.pause} onClick={onToggle}>
+              {paused ? <PlayMark /> : <PauseMark />}
             </Button>
-            <Button variant="outline" onClick={() => onSkip(30)}>
-              {text.fwd30}
+            <Button variant="outline" className="h-12 w-full min-w-0 px-1" aria-label={text.fwd30} onClick={() => onSkip(30)}>
+              <SkipMark dir="forward" />
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="ghost" onClick={onPrev}>
+          <div className="grid min-w-0 grid-cols-2 gap-2">
+            <Button variant="ghost" className="h-auto min-h-10 w-full min-w-0 whitespace-normal px-2 py-2 text-center leading-tight" onClick={onPrev}>
               {text.prev}
             </Button>
-            <Button variant="ghost" onClick={onNext}>
+            <Button variant="ghost" className="h-auto min-h-10 w-full min-w-0 whitespace-normal px-2 py-2 text-center leading-tight" onClick={onNext}>
               {text.next}
             </Button>
           </div>
