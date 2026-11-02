@@ -490,6 +490,68 @@ export function planChapterChoice(
   };
 }
 
+/**
+ * A chapter ending never starts the next one.
+ * The listener can choose to continue, unless this is the last chapter.
+ */
+export function planChapterFinished(chapterCount: number, chapterIndex: number) {
+  const count = Math.max(0, chapterCount);
+  const index = Number.isFinite(chapterIndex) ? chapterIndex : -1;
+  const offerNext = index >= 0 && index < count - 1;
+  return {
+    autoplay: false as const,
+    offerNext,
+    nextIndex: offerNext ? index + 1 : null,
+  };
+}
+
+/** Choosing stop leaves the finished chapter paused. */
+export function planStopAfterChapter() {
+  return { autoplay: false as const };
+}
+
+/** Choosing continue plays the next chapter. The last chapter has nothing to continue. */
+export function planContinueNext(book: Book, progress: ProgressMap | null | undefined, chapterIndex: number) {
+  const end = planChapterFinished(book.chapters.length, chapterIndex);
+  if (!end.offerNext || end.nextIndex == null) {
+    return {
+      autoplay: false as const,
+      chapterIndex,
+      seekSeconds: 0,
+      chapterId: book.chapters[chapterIndex]?.id ?? null,
+      chapterTitle: book.chapters[chapterIndex]?.title ?? "",
+    };
+  }
+  return planChapterChoice(book, progress, end.nextIndex, { chapterIndex, seconds: 0 });
+}
+
+/** Next and previous select that chapter and start it. Staying on the same chapter does not restart. */
+export function planStepChapter(
+  book: Book,
+  progress: ProgressMap | null | undefined,
+  chapterIndex: number,
+  delta: number,
+) {
+  const count = book.chapters.length;
+  const current = book.chapters[chapterIndex];
+  if (!count) {
+    return { autoplay: false as const, moved: false as const, chapterIndex: 0, seekSeconds: 0, chapterId: null, chapterTitle: "" };
+  }
+  const nextIndex = Math.min(count - 1, Math.max(0, chapterIndex + delta));
+  if (nextIndex === chapterIndex) {
+    return {
+      autoplay: false as const,
+      moved: false as const,
+      chapterIndex,
+      seekSeconds: 0,
+      chapterId: current?.id ?? null,
+      chapterTitle: current?.title ?? "",
+    };
+  }
+  const plan = planChapterChoice(book, progress, nextIndex, { chapterIndex, seconds: 0 });
+  return { ...plan, moved: true as const };
+}
+
 export function bookFraction(book: Book, progress: ProgressMap) {
   const record = progress[book.id];
   if (!record || !book.chapters.length) return null;
