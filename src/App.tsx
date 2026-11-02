@@ -6,8 +6,10 @@ import {
   DriveError,
   findLibraryFolders,
   driveListAll,
+  ensureMediaWorker,
   forgetFolder,
   getAccessToken,
+  pickLibraryFolder,
   publishTokenToWorker,
   registerMediaWorker,
   rememberedFolder,
@@ -145,13 +147,37 @@ export function App() {
         const found = await findLibraryFolders(token);
         const saved = rememberedFolder();
         const match = found.find((item) => item.id === saved);
-        if (found.length > 1 && !match) {
-          setFolders(found);
-          setStatus("idle");
-          return;
+        if (match) folder = match;
+        else if (found.length === 1) folder = found[0];
+        else {
+          const filled = new Map<string, boolean>();
+          for (const item of found) {
+            try {
+              const kids = await driveListAll(
+                token,
+                `'${item.id.replaceAll("'", "\\'")}' in parents and trashed=false`,
+                fetch,
+                { corpora: "allDrives" },
+              );
+              filled.set(
+                item.id,
+                kids.some((child) => child?.name && !child.name.startsWith("_") && !child.name.startsWith(".")),
+              );
+            } catch {
+              filled.set(item.id, false);
+            }
+          }
+          const picked = pickLibraryFolder(found, filled);
+          if (picked) folder = picked;
+          else {
+            const choices = found.filter((item) => filled.get(item.id) !== false);
+            setFolders(choices.length ? choices : found);
+            setStatus("idle");
+            return;
+          }
         }
-        folder = match || found[0];
       }
+      await ensureMediaWorker(token);
       rememberFolder(folder.id);
       const entries = await walkLibrary(
         folder.id,

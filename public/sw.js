@@ -52,8 +52,14 @@ async function proxy(url, request) {
   if (range) headers.set("Range", range);
   const upstream = await fetch(
     `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media&supportsAllDrives=true`,
-    { headers },
+    { headers, mode: "cors", credentials: "omit", cache: "no-store", redirect: "follow" },
   );
+  if (upstream.type === "opaque" || !upstream.status) {
+    return new Response("Drive media response was opaque", {
+      status: 502,
+      headers: { "Cache-Control": "no-store", "Content-Type": "text/plain" },
+    });
+  }
   const out = new Headers();
   for (const key of ["content-type", "content-length", "content-range", "accept-ranges"]) {
     const value = upstream.headers.get(key);
@@ -61,5 +67,15 @@ async function proxy(url, request) {
   }
   const ext = (name.split(".").pop() || "").toLowerCase();
   if (MIME[ext]) out.set("content-type", MIME[ext]);
+  const total = Number(url.searchParams.get("size")) || 0;
+  if (upstream.status === 206 && total && !out.has("content-range")) {
+    const match = /bytes=(\d+)-(\d*)/i.exec(request.headers.get("Range") || "");
+    const start = match ? Number(match[1]) : 0;
+    const length = Number(out.get("content-length")) || 0;
+    const end = match && match[2] ? Number(match[2]) : start + Math.max(length, 1) - 1;
+    out.set("content-range", `bytes ${start}-${end}/${total}`);
+  }
+  out.set("accept-ranges", "bytes");
+  out.set("cache-control", "no-store");
   return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: out });
 }

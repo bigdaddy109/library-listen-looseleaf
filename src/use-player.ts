@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ensureMediaWorker, getAccessToken } from "./drive";
 import {
   applyProgress,
   formatClock,
@@ -74,9 +75,20 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     };
 
     const src = new URL(chapter.url, location.href).href;
-    if (audio.src !== src) audio.src = chapter.url;
-    if (audio.readyState >= 1) apply();
-    else audio.addEventListener("loadedmetadata", apply, { once: true });
+    let onMeta: (() => void) | null = null;
+    const cueMedia = async () => {
+      if (chapter.url.includes("/drive-media/")) {
+        const token = getAccessToken();
+        if (token) await ensureMediaWorker(token);
+      }
+      if (cancelled) return;
+      audio.pause();
+      onMeta = () => apply();
+      if (audio.src !== src) audio.src = chapter.url;
+      if (audio.readyState >= 1) apply();
+      else audio.addEventListener("loadedmetadata", onMeta, { once: true });
+    };
+    void cueMedia();
 
     const onTime = () => {
       if (!armed.current || audio.paused) return;
@@ -98,6 +110,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     audio.addEventListener("play", onPlay);
     return () => {
       cancelled = true;
+      if (onMeta) audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("play", onPlay);
@@ -123,7 +136,12 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   async function play() {
     const audio = audioRef.current;
     if (!audio || !chapter?.url) return;
+    if (chapter.url.includes("/drive-media/")) {
+      const token = getAccessToken();
+      if (token) await ensureMediaWorker(token);
+    }
     armed.current = true;
+    audio.pause();
     await audio.play();
     setPaused(false);
   }

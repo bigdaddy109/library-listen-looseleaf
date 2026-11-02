@@ -110,7 +110,11 @@ export async function walkLibrary(
       const next = [...parts, item.name];
       const folderId = asFolder(item);
       if (folderId) {
-        await walk(folderId, next, depth + 1);
+        try {
+          await walk(folderId, next, depth + 1);
+        } catch {
+          /* One unreadable folder must not hide the rest of Library. */
+        }
         continue;
       }
       if (!isLibraryMediaName(item.name)) continue;
@@ -213,21 +217,61 @@ function loadScript(src: string) {
   });
 }
 
+const TOKEN_MESSAGE = "librarylisten-token";
+
+function postToken(token: string) {
+  const message = { type: TOKEN_MESSAGE, token };
+  navigator.serviceWorker?.controller?.postMessage(message);
+  navigator.serviceWorker?.ready
+    .then((reg) => reg.active?.postMessage(message))
+    .catch(() => {});
+}
+
 export function publishTokenToWorker(token: string) {
-  const send = () => {
-    navigator.serviceWorker?.controller?.postMessage({ type: "librarylisten-token", token });
-  };
-  send();
-  navigator.serviceWorker?.ready.then((reg) => reg.active?.postMessage({ type: "librarylisten-token", token })).catch(() => {});
+  postToken(token);
+}
+
+/** The audio element cannot send Google's header. The worker must be in control first. */
+export async function ensureMediaWorker(token: string) {
+  if (!("serviceWorker" in navigator) || !token) return;
+  const reg = await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: "none" });
+  if (!navigator.serviceWorker.controller) {
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 4000);
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        () => {
+          clearTimeout(timer);
+          resolve();
+        },
+        { once: true },
+      );
+    });
+  }
+  await navigator.serviceWorker.ready;
+  const message = { type: TOKEN_MESSAGE, token };
+  navigator.serviceWorker.controller?.postMessage(message);
+  reg.active?.postMessage(message);
 }
 
 export async function registerMediaWorker() {
   if (!("serviceWorker" in navigator)) return;
   try {
-    await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
+    await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: "none" });
   } catch {
-    /* playback falls back to a signed-out error if the worker never starts */
+    /* listing still works; playback needs the worker */
   }
+}
+
+/**
+ * One filled Library wins. Several filled folders need a choice.
+ * `filled` is true when that folder has a visible child.
+ */
+export function pickLibraryFolder(folders: DriveItem[], filled: ReadonlyMap<string, boolean> = new Map()) {
+  const known = folders.filter((folder) => filled.get(folder.id) === true);
+  if (known.length === 1) return known[0];
+  if (folders.length === 1) return folders[0];
+  return null;
 }
 
 /**

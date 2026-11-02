@@ -256,7 +256,10 @@ export function resolveBookMedia(book: Book, base = "/"): Book {
       return root + file.url.replace(/^\//, "");
     }
     if (file.driveId) {
-      return `${root}drive-media/${encodeURIComponent(file.driveId)}?name=${encodeURIComponent(file.name)}`;
+      const params = new URLSearchParams();
+      params.set("name", file.name);
+      if (file.size && file.size > 0) params.set("size", String(Math.round(file.size)));
+      return `${root}drive-media/${encodeURIComponent(file.driveId)}?${params}`;
     }
     return "";
   };

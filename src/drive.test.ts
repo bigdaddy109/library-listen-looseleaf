@@ -4,6 +4,7 @@ import {
   implicitRedirectUri,
   libraryFolderQuery,
   parseImplicitHash,
+  pickLibraryFolder,
   usesRedirect,
   walkLibrary,
   type DriveItem,
@@ -40,6 +41,25 @@ describe("drive queries", () => {
   });
 });
 
+describe("pickLibraryFolder", () => {
+  const a = { id: "a", name: "Library", ownedByMe: true };
+  const b = { id: "b", name: "Library", ownedByMe: false };
+  it("uses the only folder that has anything in it", () => {
+    const filled = new Map([
+      ["a", false],
+      ["b", true],
+    ]);
+    expect(pickLibraryFolder([a, b], filled)?.id).toBe("b");
+  });
+  it("asks for a choice when two folders both have files", () => {
+    const filled = new Map([
+      ["a", true],
+      ["b", true],
+    ]);
+    expect(pickLibraryFolder([a, b], filled)).toBeNull();
+  });
+});
+
 describe("walkLibrary", () => {
   it("reads the series/listen/book layout and skips _source", async () => {
     const tree: Record<string, DriveItem[]> = {
@@ -68,5 +88,24 @@ describe("walkLibrary", () => {
     expect(books[0].ebookName).toBe("Hatchet.epub");
     expect(books[0].coverFile?.driveId).toBe("c");
     expect(entries.some((entry) => entry.path.includes("_source"))).toBe(false);
+  });
+
+  it("keeps the books it can read when one folder refuses", async () => {
+    const tree: Record<string, DriveItem[]> = {
+      lib: [
+        { id: "ok", name: "手斧男孩-Hatchet", mimeType: FOLDER },
+        { id: "bad", name: "壞掉的", mimeType: FOLDER },
+      ],
+      ok: [{ id: "listen", name: "listen", mimeType: FOLDER }],
+      listen: [{ id: "book", name: "Hatchet", mimeType: FOLDER }],
+      book: [{ id: "a", name: "01.mp3", mimeType: "audio/mpeg", size: "10" }],
+    };
+    const entries = await walkLibrary("lib", async (id) => {
+      if (id === "bad") throw new Error("forbidden");
+      return tree[id] ?? [];
+    });
+    const books = buildLibrary(entries);
+    expect(books).toHaveLength(1);
+    expect(books[0].seriesZh).toBe("手斧男孩");
   });
 });
