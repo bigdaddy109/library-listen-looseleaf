@@ -1,0 +1,15 @@
+@import "./styles/looseleaf.css";
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.ll-dock {
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
