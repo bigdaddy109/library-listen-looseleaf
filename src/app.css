@@ -13,3 +13,34 @@ body {
 .ll-dock {
   padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
 }
+
+.ll-mini-spacer {
+  height: calc(clamp(3.5rem, 10dvh, 4.5rem) + env(safe-area-inset-bottom));
+}
+
+.ll-mini-bar {
+  height: clamp(3.5rem, 10dvh, 4.5rem);
+}
+
+.ll-marquee {
+  display: inline-flex;
+  width: max-content;
+  animation: ll-marquee 9s linear infinite;
+}
+
+@keyframes ll-marquee {
+  0%,
+  18% {
+    transform: translateX(0);
+  }
+  82%,
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ll-marquee {
+    animation: none;
+  }
+}

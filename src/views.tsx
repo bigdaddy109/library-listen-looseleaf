@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,10 +25,11 @@ function coverKind(book: Book) {
   return "book";
 }
 
-export function Cover({ book, photo = true }: { book: Book; photo?: boolean }) {
+export function Cover({ book, photo = true, shape = "poster" }: { book: Book; photo?: boolean; shape?: "poster" | "square" }) {
   const kind = coverKind(book);
   const stock = kind === "woods" ? "kraft" : kind === "school" ? "pad" : "card";
-  const showPhoto = photo && !!book.coverUrl;
+  const showPhoto = photo && !!book.coverUrl && shape !== "square";
+  const square = shape === "square";
   return (
     <Paper
       stock={stock}
@@ -38,12 +39,16 @@ export function Cover({ book, photo = true }: { book: Book; photo?: boolean }) {
       shadow="card"
       seed={book.id}
       data-cover={showPhoto ? "photo" : "designed"}
-      className={`flex aspect-[3/4] w-24 shrink-0 flex-col justify-between p-2 text-ink${showPhoto ? " overflow-hidden" : ""}`}
+      className={
+        square
+          ? "flex aspect-square w-full items-center justify-center p-1 text-ink"
+          : `flex aspect-[3/4] w-24 shrink-0 flex-col justify-between p-2 text-ink${showPhoto ? " overflow-hidden" : ""}`
+      }
     >
       <CoverMark kind={kind} />
       {showPhoto ? (
         <img src={book.coverUrl} alt="" className="h-10 w-full max-w-full object-cover" />
-      ) : (
+      ) : square ? null : (
         <p className="font-script text-sm leading-tight break-words">{book.seriesZh === book.seriesEn ? book.title : book.seriesZh}</p>
       )}
     </Paper>
@@ -82,6 +87,7 @@ export function Frame({
   mode,
   heading,
   onSignOut,
+  mini = false,
   children,
 }: {
   text: Copy;
@@ -90,6 +96,7 @@ export function Frame({
   mode: "demo" | "drive";
   heading: string;
   onSignOut: () => void;
+  mini?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -133,6 +140,7 @@ export function Frame({
         </div>
       </header>
       {children}
+      {mini ? <div aria-hidden="true" className="ll-mini-spacer" /> : null}
     </Paper>
   );
 }
@@ -341,6 +349,7 @@ export function BookScreen({
   activeChapterId,
   clock,
   paused,
+  dock = true,
   onBack,
   onOpenPlayer,
   onChapter,
@@ -352,6 +361,7 @@ export function BookScreen({
   activeChapterId: string;
   clock: string;
   paused: boolean;
+  dock?: boolean;
   onBack: () => void;
   onOpenPlayer: () => void;
   onChapter: (index: number) => void;
@@ -401,20 +411,18 @@ export function BookScreen({
       </ul>
       <p className="text-sm text-muted-foreground">
         {chapterCount(lang, book.chapters.length)}
-        {paused
-          ? resumed
-            ? ` · ${text.paused} ${clock}`
-            : ""
-          : ` · ${text.pause} ${clock || formatClock(plan.seekSeconds)}`}
+        {paused && resumed ? ` · ${text.paused} ${clock}` : ""}
       </p>
-      <Dock
-        text={text}
-        title={book.title}
-        chapter={book.chapters.find((chapter) => chapter.id === activeChapterId)?.title || plan.chapterTitle}
-        clock={clock || formatClock(plan.seekSeconds)}
-        paused={paused}
-        onOpen={onOpenPlayer}
-      />
+      {dock ? (
+        <Dock
+          text={text}
+          title={book.title}
+          chapter={book.chapters.find((chapter) => chapter.id === activeChapterId)?.title || plan.chapterTitle}
+          clock={clock || formatClock(plan.seekSeconds)}
+          paused={paused}
+          onOpen={onOpenPlayer}
+        />
+      ) : null}
     </div>
   );
 }
@@ -435,6 +443,7 @@ export function PlayerScreen({
   onNext,
   onSkip,
   onSeek,
+  sheet = false,
 }: {
   book: Book;
   text: Copy;
@@ -451,16 +460,26 @@ export function PlayerScreen({
   onNext: () => void;
   onSkip: (delta: number) => void;
   onSeek: (seconds: number) => void;
+  sheet?: boolean;
 }) {
   const max = duration > 0 ? duration : Math.max(seconds, 1);
+  const remainingClock = formatClock(Math.max(0, (duration > 0 ? duration : 0) - seconds));
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-5" data-screen="player" data-paused={paused ? "true" : "false"}>
-      <Button variant="ghost" className="w-fit" onClick={onBack}>
-        {backLabel}
-      </Button>
+      {sheet ? null : (
+        <Button variant="ghost" className="w-fit" onClick={onBack}>
+          {backLabel}
+        </Button>
+      )}
       <Card tilt={false} stock="card" className="gap-4">
         <CardContent className="grid items-center gap-4 sm:grid-cols-[8rem_1fr]">
-          <Cover book={book} />
+          {sheet ? (
+            <div className="mx-auto w-36 max-w-full">
+              <Cover book={book} photo={false} shape="square" />
+            </div>
+          ) : (
+            <Cover book={book} photo={false} />
+          )}
           <div className="min-w-0">
             <CardDescription>{seriesLine(book)}</CardDescription>
             <CardTitle className="mt-1">{book.title}</CardTitle>
@@ -474,7 +493,7 @@ export function PlayerScreen({
           {paused ? <p className="text-sm">{text.waiting}</p> : null}
           <p className="font-script text-4xl leading-none" data-testid="playhead">
             {clock}
-            <span className="px-2 font-hand text-lg text-muted-foreground">/ {durationClock}</span>
+            <span className="px-2 font-hand text-lg text-muted-foreground">/ {sheet ? remainingClock : durationClock}</span>
           </p>
           <Slider
             aria-label={text.seek}
@@ -536,6 +555,173 @@ export function Dock({
         <Button className="w-full sm:w-auto" onClick={onOpen}>
           {text.openPlayer}
         </Button>
+      </Paper>
+    </div>
+  );
+}
+
+function Marquee({ text }: { text: string }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLSpanElement>(null);
+  const [overflow, setOverflow] = useState(false);
+  useEffect(() => {
+    const box = outer.current;
+    const line = inner.current;
+    if (!box || !line) return;
+    const measure = () => setOverflow(line.scrollWidth > box.clientWidth + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [text, overflow]);
+  return (
+    <div ref={outer} className="max-w-full overflow-hidden whitespace-nowrap">
+      {overflow ? (
+        <span className="ll-marquee">
+          <span className="pr-8">{text}</span>
+          <span className="pr-8" aria-hidden="true">
+            {text}
+          </span>
+        </span>
+      ) : (
+        <span ref={inner} className="inline-block">
+          {text}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function MiniPlayer({
+  book,
+  chapter,
+  text,
+  paused,
+  seconds,
+  duration,
+  onToggle,
+  onExpand,
+}: {
+  book: Book;
+  chapter: string;
+  text: Copy;
+  paused: boolean;
+  seconds: number;
+  duration: number;
+  onToggle: () => void;
+  onExpand: () => void;
+}) {
+  const pct = duration > 0 ? Math.min(100, Math.max(0, (seconds / duration) * 100)) : 0;
+  return (
+    <div
+      data-mini-player=""
+      data-paused={paused ? "true" : "false"}
+      className="fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)]"
+    >
+      <Paper tilt={false} tape={false} shadow="card" stock="slip" className="ll-mini-bar relative w-full overflow-hidden rounded-none px-3">
+        <button
+          type="button"
+          data-mini-expand=""
+          className="absolute inset-0 z-0 cursor-pointer border-0 bg-transparent p-0"
+          aria-label={text.expand}
+          onClick={onExpand}
+        />
+        <div className="relative z-10 flex h-full items-center gap-3 pointer-events-none">
+          <div className="w-11 shrink-0">
+            <Cover book={book} photo={false} shape="square" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm leading-tight font-bold">
+              <Marquee text={book.title} />
+            </div>
+            <div className="text-xs leading-tight text-muted-foreground">
+              <Marquee text={chapter} />
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="lg"
+            className="pointer-events-auto shrink-0"
+            aria-label={paused ? text.play : text.pause}
+            onClick={onToggle}
+          >
+            {paused ? text.play : text.pause}
+          </Button>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 z-10 h-0.5 bg-ink/15" aria-hidden="true">
+          <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+        </div>
+      </Paper>
+    </div>
+  );
+}
+
+export function PlayerSheet({ onClose, collapseLabel, children }: { onClose: () => void; collapseLabel: string; children: ReactNode }) {
+  const [y, setY] = useState(() => (typeof window === "undefined" ? 800 : window.innerHeight));
+  const [ease, setEase] = useState(true);
+  const drag = useRef<{ y: number; active: boolean } | null>(null);
+  const closing = useRef(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setY(0));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  function close() {
+    if (closing.current) return;
+    closing.current = true;
+    setEase(true);
+    setY(window.innerHeight);
+    window.setTimeout(onClose, 280);
+  }
+
+  return (
+    <div
+      data-player-sheet=""
+      className="fixed inset-0 z-40"
+      style={{ transform: `translateY(${y}px)`, transition: ease ? "transform 280ms ease" : "none" }}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        if (target.closest("button, a, input, textarea, [data-slot='slider'], [data-slot='slider-thumb']")) return;
+        drag.current = { y: event.clientY, active: true };
+        setEase(false);
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        if (!drag.current?.active) return;
+        setY(Math.max(0, event.clientY - drag.current.y));
+      }}
+      onPointerUp={(event) => {
+        if (!drag.current?.active) return;
+        const dy = Math.max(0, event.clientY - drag.current.y);
+        drag.current = null;
+        if (dy > 72) close();
+        else {
+          setEase(true);
+          setY(0);
+        }
+      }}
+      onPointerCancel={() => {
+        drag.current = null;
+        setEase(true);
+        setY(0);
+      }}
+    >
+      <Paper
+        as="div"
+        stock="paper"
+        rules="ruled"
+        tape="top"
+        tilt={false}
+        className="flex h-full flex-col overflow-y-auto px-4 py-4"
+      >
+        <Button variant="ghost" size="icon" className="w-fit" aria-label={collapseLabel} onClick={close}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Button>
+        {children}
       </Paper>
     </div>
   );

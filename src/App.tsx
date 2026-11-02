@@ -23,7 +23,7 @@ import {
 import { LANG_KEY, copy, type Lang } from "./i18n";
 import { buildLibrary, resolveBookMedia, type Book, type ProgressMap } from "./library";
 import { usePlayer } from "./use-player";
-import { BookScreen, Frame, PlayerScreen, Shelf } from "./views";
+import { BookScreen, Frame, MiniPlayer, PlayerScreen, PlayerSheet, Shelf } from "./views";
 
 type Route = { name: "shelf" } | { name: "book"; id: string } | { name: "player"; id: string };
 type Status = "idle" | "signingIn" | "scanning";
@@ -67,6 +67,7 @@ export function App() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [folders, setFolders] = useState<DriveItem[]>([]);
+  const [playerOpen, setPlayerOpen] = useState(false);
   const player = usePlayer(books, progress, setProgress);
   const text = copy(lang);
 
@@ -230,12 +231,13 @@ export function App() {
   }
 
   const current = books.find((book) => book.id === (route.name === "shelf" ? "" : route.id)) ?? null;
+  const showMini = player.started && !!player.book && !!player.chapter && route.name !== "player" && !playerOpen;
   const heading =
     route.name === "player" && current ? current.title : route.name === "book" && current ? current.title : text.shelf;
 
   return (
     <InkProvider>
-      <Frame text={text} lang={lang} setLang={setLang} mode={mode} heading={heading} onSignOut={signOut}>
+      <Frame text={text} lang={lang} setLang={setLang} mode={mode} heading={heading} onSignOut={signOut} mini={showMini}>
         {route.name === "shelf" ? (
           <Shelf
             text={text}
@@ -270,6 +272,7 @@ export function App() {
             activeChapterId={player.book?.id === current.id ? (player.chapter?.id ?? "") : ""}
             clock={player.book?.id === current.id ? player.clock : ""}
             paused={player.book?.id === current.id ? player.paused : true}
+            dock={!player.started}
             onBack={() => go({ name: "shelf" })}
             onOpenPlayer={() => go({ name: "player", id: current.id })}
             onChapter={(index) => player.chooseChapter(current, index)}
@@ -296,6 +299,40 @@ export function App() {
           />
         ) : null}
       </Frame>
+      {showMini && player.book && player.chapter ? (
+        <MiniPlayer
+          book={player.book}
+          chapter={player.chapter.title}
+          text={text}
+          paused={player.paused}
+          seconds={player.seconds}
+          duration={player.duration}
+          onToggle={() => void player.toggle()}
+          onExpand={() => setPlayerOpen(true)}
+        />
+      ) : null}
+      {playerOpen && player.book ? (
+        <PlayerSheet collapseLabel={text.collapse} onClose={() => setPlayerOpen(false)}>
+          <PlayerScreen
+            sheet
+            book={player.book}
+            text={text}
+            chapterTitle={player.chapter?.title || ""}
+            paused={player.paused}
+            clock={player.clock}
+            durationClock={player.durationClock}
+            seconds={player.seconds}
+            duration={player.duration}
+            onBack={() => setPlayerOpen(false)}
+            backLabel={text.collapse}
+            onToggle={() => void player.toggle()}
+            onPrev={() => player.changeChapter(-1)}
+            onNext={() => player.changeChapter(1)}
+            onSkip={(delta) => player.skip(delta)}
+            onSeek={(seconds) => player.seek(seconds)}
+          />
+        </PlayerSheet>
+      ) : null}
       <audio ref={player.audioRef} preload="metadata" playsInline style={{ position: "absolute", width: 1, height: 1, opacity: 0 }} />
     </InkProvider>
   );

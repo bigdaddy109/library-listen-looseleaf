@@ -26,6 +26,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   const audioRef = useRef<HTMLAudioElement>(null);
   const [cue, setCue] = useState<Cue | null>(null);
   const [paused, setPaused] = useState(true);
+  const [started, setStarted] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [duration, setDuration] = useState(0);
   const armed = useRef(false);
@@ -117,7 +118,10 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
       const dur = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null;
       if (audio.currentTime > 0) remember(cue.bookId, chapter.id, audio.currentTime, dur);
     };
-    const onPlay = () => setPaused(false);
+    const onPlay = () => {
+      setStarted(true);
+      setPaused(false);
+    };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("play", onPlay);
@@ -269,6 +273,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     book,
     chapter,
     paused,
+    started,
     seconds,
     duration,
     clock: formatClock(seconds),
