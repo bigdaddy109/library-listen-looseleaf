@@ -11,9 +11,11 @@ import {
   savePlaybackMode,
   saveProgressMap,
   type Book,
+  type Chapter,
   type PlaybackMode,
   type ProgressMap,
 } from "./library";
+import { playbackSession, publishPlaybackSession } from "./media-session";
 
 export type Cue = {
   bookId: string;
@@ -48,6 +50,11 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   const book = books.find((item) => item.id === cue?.bookId) ?? null;
   const chapter = book?.chapters[cue?.chapterIndex ?? -1] ?? null;
 
+  function showNowPlaying(currentBook: Book | null = book, currentChapter: Chapter | null = chapter) {
+    if (!currentBook || !currentChapter) return;
+    publishPlaybackSession(playbackSession(currentBook, currentChapter, location.href, import.meta.env.BASE_URL));
+  }
+
   function remember(bookId: string, chapterId: string, position: number, reported: number | null) {
     const next = applyProgress(progressRef.current, bookId, chapterId, position, reported);
     saveProgressMap(next);
@@ -59,6 +66,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !cue || !chapter) return;
+    showNowPlaying(book, chapter);
     let cancelled = false;
     armed.current = false;
     setSeconds(cue.seek);
@@ -129,6 +137,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     const onPlay = () => {
       setStarted(true);
       setPaused(false);
+      showNowPlaying(book, chapter);
     };
     const onEnded = () => {
       const count = booksRef.current.find((item) => item.id === cue.bookId)?.chapters.length ?? 0;
@@ -179,9 +188,10 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     if (!play) audioRef.current?.pause();
   }
 
-  function primePlayback(url: string) {
+  function primePlayback(url: string, currentBook: Book | null = book, currentChapter: Chapter | null = chapter) {
     const audio = audioRef.current;
     if (!audio || !url) return;
+    showNowPlaying(currentBook, currentChapter);
     wantPlayRef.current = true;
     setPaused(false);
     const start = () => {
@@ -225,7 +235,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     }
     arm(book.id, plan.chapterIndex, plan.seekSeconds, true);
     const next = book.chapters[plan.chapterIndex];
-    if (next?.url) primePlayback(next.url);
+    if (next?.url) primePlayback(next.url, book, next);
   }
 
   function armBook(next: Book, map: ProgressMap = progressRef.current) {
@@ -237,6 +247,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
   async function play() {
     const audio = audioRef.current;
     if (!audio || !chapter?.url) return;
+    showNowPlaying(book, chapter);
     wantPlayRef.current = true;
     setPaused(false);
     if (chapter.url.includes("/drive-media/")) {
@@ -295,7 +306,7 @@ export function usePlayer(books: Book[], progress: ProgressMap, onProgress: (nex
     const target = booksRef.current.find((item) => item.id === bookId);
     const next = target?.chapters[chapterIndex];
     arm(bookId, chapterIndex, seekTo, true);
-    if (next?.url) primePlayback(next.url);
+    if (next?.url && target) primePlayback(next.url, target, next);
   }
 
   function changeChapter(delta: number) {
