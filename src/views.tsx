@@ -14,7 +14,8 @@ import { chapterCount, folderCaption, type Copy, type Lang } from "./i18n";
 import hatchetIcon from "./assets/series-icons/hatchet.png";
 import immuneIcon from "./assets/series-icons/immune.png";
 import schoolIcon from "./assets/series-icons/middle-school.png";
-import { bookFraction, formatClock, planPausedOpen, type Book, type PlaybackMode, type ProgressMap } from "./library";
+import whatIfIcon from "./assets/series-icons/what-if.png";
+import { bookFraction, formatClock, planPausedOpen, seriesIconName, type Book, type PlaybackMode, type ProgressMap } from "./library";
 
 export function seriesLine(book: Book) {
   if (book.seriesZh === book.seriesEn) return book.seriesZh;
@@ -29,11 +30,11 @@ function coverKind(book: Book) {
 }
 
 function seriesIcon(book: Book) {
-  const series = `${book.seriesZh} ${book.seriesEn}`;
-  const lower = series.toLowerCase();
-  if (lower.includes("hatchet") || book.seriesZh.includes("斧")) return { src: hatchetIcon, name: "hatchet" };
-  if (lower.includes("immune") || book.seriesZh.includes("免疫")) return { src: immuneIcon, name: "immune" };
-  if (lower.includes("school") || book.seriesZh.includes("學")) return { src: schoolIcon, name: "middle-school" };
+  const name = seriesIconName(book);
+  if (name === "hatchet") return { src: hatchetIcon, name };
+  if (name === "immune") return { src: immuneIcon, name };
+  if (name === "middle-school") return { src: schoolIcon, name };
+  if (name === "what-if") return { src: whatIfIcon, name };
   return null;
 }
 

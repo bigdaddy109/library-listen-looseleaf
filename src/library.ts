@@ -112,6 +112,24 @@ function spaceEnglish(value: string) {
     .trim();
 }
 
+export type SeriesIconName = "hatchet" | "immune" | "middle-school" | "what-if";
+
+/** What If and What If? only. What If 2 stays a different series. */
+function isWhatIfName(value: string) {
+  const normalized = value.normalize("NFC").replace(/[?？]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  return normalized === "what if";
+}
+
+export function seriesIconName(book: { seriesZh: string; seriesEn: string }): SeriesIconName | null {
+  const series = `${book.seriesZh} ${book.seriesEn}`;
+  const lower = series.toLowerCase();
+  if (lower.includes("hatchet") || book.seriesZh.includes("斧")) return "hatchet";
+  if (lower.includes("immune") || book.seriesZh.includes("免疫")) return "immune";
+  if (isWhatIfName(book.seriesEn) || isWhatIfName(book.seriesZh)) return "what-if";
+  if (lower.includes("school") || book.seriesZh.includes("學")) return "middle-school";
+  return null;
+}
+
 export function titleFromFilename(fileName: string) {
   const base = fileName.replace(/\.[^.]+$/, "");
   const part = base.match(/(?:^|[-_\s])part\s*0*(\d+)$/i);
