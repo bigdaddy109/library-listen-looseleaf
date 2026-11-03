@@ -11,6 +11,9 @@ import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { DriveItem } from "./drive";
 import { chapterCount, folderCaption, type Copy, type Lang } from "./i18n";
+import hatchetIcon from "./assets/series-icons/hatchet.png";
+import immuneIcon from "./assets/series-icons/immune.png";
+import schoolIcon from "./assets/series-icons/middle-school.png";
 import { bookFraction, formatClock, planPausedOpen, type Book, type PlaybackMode, type ProgressMap } from "./library";
 
 export function seriesLine(book: Book) {
@@ -25,10 +28,20 @@ function coverKind(book: Book) {
   return "book";
 }
 
+function seriesIcon(book: Book) {
+  const series = `${book.seriesZh} ${book.seriesEn}`;
+  const lower = series.toLowerCase();
+  if (lower.includes("hatchet") || book.seriesZh.includes("斧")) return { src: hatchetIcon, name: "hatchet" };
+  if (lower.includes("immune") || book.seriesZh.includes("免疫")) return { src: immuneIcon, name: "immune" };
+  if (lower.includes("school") || book.seriesZh.includes("學")) return { src: schoolIcon, name: "middle-school" };
+  return null;
+}
+
 export function Cover({ book, shape = "poster" }: { book: Book; shape?: "poster" | "square" }) {
   const kind = coverKind(book);
   const stock = kind === "woods" ? "kraft" : kind === "school" ? "pad" : "card";
   const square = shape === "square";
+  const icon = seriesIcon(book);
   return (
     <Paper
       stock={stock}
@@ -44,7 +57,17 @@ export function Cover({ book, shape = "poster" }: { book: Book; shape?: "poster"
           : "flex aspect-[3/4] w-24 shrink-0 flex-col justify-between p-2 text-ink"
       }
     >
-      <CoverMark kind={kind} />
+      {icon ? (
+        <img
+          data-cover-mark=""
+          data-series-icon={icon.name}
+          src={icon.src}
+          alt=""
+          className={square ? "h-full w-full object-contain" : "min-h-0 w-full flex-1 object-contain"}
+        />
+      ) : (
+        <CoverMark kind={kind} />
+      )}
       {square ? null : (
         <p className="font-script text-sm leading-tight break-words">{book.seriesZh === book.seriesEn ? book.title : book.seriesZh}</p>
       )}

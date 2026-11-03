@@ -71,7 +71,10 @@ test.describe("signed-in shelf", () => {
 
           const shelf = document.querySelector("[data-screen='shelf']");
           if (!shelf) problems.push("missing shelf");
-          if (shelf?.querySelector("img")) problems.push("shelf still shows a cover image");
+          const strayCovers = [...(shelf?.querySelectorAll("img") ?? [])].filter(
+            (img) => img.getAttribute("data-series-icon") == null,
+          );
+          if (strayCovers.length) problems.push("shelf still shows a cover image");
 
           const covers = [...(shelf?.querySelectorAll("[data-cover]") ?? [])];
           if (covers.length < 2) problems.push(`expected designed covers on the book cards, found ${covers.length}`);
