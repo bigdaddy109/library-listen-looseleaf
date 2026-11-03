@@ -112,12 +112,18 @@ function spaceEnglish(value: string) {
     .trim();
 }
 
-export type SeriesIconName = "hatchet" | "immune" | "middle-school" | "what-if";
+export type SeriesIconName = "hatchet" | "immune" | "middle-school" | "what-if" | "what-if-2";
 
-/** What If and What If? only. What If 2 stays a different series. */
-function isWhatIfName(value: string) {
-  const normalized = value.normalize("NFC").replace(/[?？]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
-  return normalized === "what if";
+/** `What If?` and `WhatIf2` collapse to the series name, without matching a longer title. */
+function whatIfKey(value: string) {
+  return value
+    .normalize("NFC")
+    .replace(/[?？]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/([a-z])(\d)/g, "$1 $2")
+    .replace(/\s+/g, " ");
 }
 
 export function seriesIconName(book: { seriesZh: string; seriesEn: string }): SeriesIconName | null {
@@ -125,7 +131,8 @@ export function seriesIconName(book: { seriesZh: string; seriesEn: string }): Se
   const lower = series.toLowerCase();
   if (lower.includes("hatchet") || book.seriesZh.includes("斧")) return "hatchet";
   if (lower.includes("immune") || book.seriesZh.includes("免疫")) return "immune";
-  if (isWhatIfName(book.seriesEn) || isWhatIfName(book.seriesZh)) return "what-if";
+  if (whatIfKey(book.seriesEn) === "what if 2") return "what-if-2";
+  if (whatIfKey(book.seriesEn) === "what if" || whatIfKey(book.seriesZh) === "what if") return "what-if";
   if (lower.includes("school") || book.seriesZh.includes("學")) return "middle-school";
   return null;
 }

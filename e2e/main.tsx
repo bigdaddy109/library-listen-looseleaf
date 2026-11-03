@@ -77,8 +77,17 @@ const whatIfBooks = buildLibrary([
   fixtureEntry("Library/Immune/listen/Immune Part01/01.mp3"),
 ]);
 
+const whatIf2Books = buildLibrary([
+  fixtureEntry("Library/What If 2/listen/What If 2/01.mp3"),
+  fixtureEntry("Library/What If?/listen/What If/01.mp3"),
+  fixtureEntry("Library/手斧男孩-Hatchet/listen/Hatchet/01.mp3"),
+  fixtureEntry("Library/上學不容易-Middle-School/listen/Middle School 01 - First Day/01.mp3"),
+  fixtureEntry("Library/Immune/listen/Immune Part01/01.mp3"),
+]);
+
 const fixture = params.get("fixture");
-const shelfBooks = fixture === "grouped" ? groupedBooks : fixture === "whatif" ? whatIfBooks : books;
+const shelfBooks =
+  fixture === "grouped" ? groupedBooks : fixture === "whatif" ? whatIfBooks : fixture === "whatif2" ? whatIf2Books : books;
 
 function Harness() {
   const text = copy(lang);

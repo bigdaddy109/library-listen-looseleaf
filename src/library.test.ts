@@ -61,8 +61,25 @@ describe("series icons", () => {
     expect(punctuated && seriesIconName(punctuated)).toBe("what-if");
     expect(bilingual?.seriesEn).toBe("What If");
     expect(bilingual && seriesIconName(bilingual)).toBe("what-if");
-    expect(sequel && seriesIconName(sequel)).toBeNull();
-    expect(sequelMark && seriesIconName(sequelMark)).toBeNull();
+    expect(sequel && seriesIconName(sequel)).toBe("what-if-2");
+    expect(sequelMark && seriesIconName(sequelMark)).toBe("what-if-2");
+  });
+
+  it("uses the starburst drawing for What If 2", () => {
+    const sequel = buildLibrary([entry("Library/What If 2/listen/What If 2/01.mp3")])[0];
+    const bilingual = buildLibrary([entry("Library/門羅-WhatIf2/listen/What If 2/01.mp3")])[0];
+    const hyphenated = buildLibrary([entry("Library/續集-What-If-2/listen/What If 2/01.mp3")])[0];
+    const later = buildLibrary([entry("Library/What If 3/listen/What If 3/01.mp3")])[0];
+    const twenty = buildLibrary([entry("Library/What If 20/listen/What If 20/01.mp3")])[0];
+    expect(sequel?.title).toBe("What If 2");
+    expect(sequel?.seriesEn).toBe("What If 2");
+    expect(sequel && seriesIconName(sequel)).toBe("what-if-2");
+    expect(bilingual?.seriesEn).toBe("What If2");
+    expect(bilingual && seriesIconName(bilingual)).toBe("what-if-2");
+    expect(hyphenated?.seriesEn).toBe("What If 2");
+    expect(hyphenated && seriesIconName(hyphenated)).toBe("what-if-2");
+    expect(later && seriesIconName(later)).toBeNull();
+    expect(twenty && seriesIconName(twenty)).toBeNull();
   });
 
   it("keeps hatchet, middle school, and immune", () => {

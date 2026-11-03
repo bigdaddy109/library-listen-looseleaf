@@ -15,6 +15,7 @@ import hatchetIcon from "./assets/series-icons/hatchet.png";
 import immuneIcon from "./assets/series-icons/immune.png";
 import schoolIcon from "./assets/series-icons/middle-school.png";
 import whatIfIcon from "./assets/series-icons/what-if.png";
+import whatIf2Icon from "./assets/series-icons/what-if-2.png";
 import { bookFraction, formatClock, planPausedOpen, seriesIconName, type Book, type PlaybackMode, type ProgressMap } from "./library";
 
 export function seriesLine(book: Book) {
@@ -35,6 +36,7 @@ function seriesIcon(book: Book) {
   if (name === "immune") return { src: immuneIcon, name };
   if (name === "middle-school") return { src: schoolIcon, name };
   if (name === "what-if") return { src: whatIfIcon, name };
+  if (name === "what-if-2") return { src: whatIf2Icon, name };
   return null;
 }
 
