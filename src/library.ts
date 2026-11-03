@@ -5,6 +5,10 @@ export const COVER_EXT = new Set(["jpg", "jpeg", "png", "webp"]);
 export const EPUB_EXT = new Set(["epub"]);
 
 export const PROGRESS_KEY = "librarylisten.v2.progress";
+export const PLAYBACK_MODE_KEY = "librarylisten.v2.playbackMode";
+
+/** `continue` is 接續播放. `repeat` is 重複播放（單一音檔）. */
+export type PlaybackMode = "continue" | "repeat";
 
 export type LibFile = {
   name: string;
@@ -490,39 +494,36 @@ export function planChapterChoice(
   };
 }
 
-/**
- * A chapter ending never starts the next one.
- * The listener can choose to continue, unless this is the last chapter.
- */
-export function planChapterFinished(chapterCount: number, chapterIndex: number) {
-  const count = Math.max(0, chapterCount);
-  const index = Number.isFinite(chapterIndex) ? chapterIndex : -1;
-  const offerNext = index >= 0 && index < count - 1;
-  return {
-    autoplay: false as const,
-    offerNext,
-    nextIndex: offerNext ? index + 1 : null,
-  };
-}
-
-/** Choosing stop leaves the finished chapter paused. */
-export function planStopAfterChapter() {
-  return { autoplay: false as const };
-}
-
-/** Choosing continue plays the next chapter. The last chapter has nothing to continue. */
-export function planContinueNext(book: Book, progress: ProgressMap | null | undefined, chapterIndex: number) {
-  const end = planChapterFinished(book.chapters.length, chapterIndex);
-  if (!end.offerNext || end.nextIndex == null) {
-    return {
-      autoplay: false as const,
-      chapterIndex,
-      seekSeconds: 0,
-      chapterId: book.chapters[chapterIndex]?.id ?? null,
-      chapterTitle: book.chapters[chapterIndex]?.title ?? "",
-    };
+export function readPlaybackMode(store: Store | null = defaultStore()): PlaybackMode {
+  try {
+    return store?.getItem(PLAYBACK_MODE_KEY) === "repeat" ? "repeat" : "continue";
+  } catch {
+    return "continue";
   }
-  return planChapterChoice(book, progress, end.nextIndex, { chapterIndex, seconds: 0 });
+}
+
+export function savePlaybackMode(mode: PlaybackMode, store: Store | null = defaultStore()) {
+  try {
+    store?.setItem(PLAYBACK_MODE_KEY, mode);
+  } catch {
+    /* private mode */
+  }
+}
+
+/**
+ * What to do when the current track reaches its end.
+ * Repeat plays the same track again. Continue plays the next track, or stops on the last one.
+ */
+export function planTrackEnded(mode: PlaybackMode, chapterCount: number, chapterIndex: number) {
+  const count = Math.max(0, chapterCount);
+  const index = Number.isFinite(chapterIndex) ? Math.min(Math.max(0, chapterIndex), Math.max(0, count - 1)) : 0;
+  if (mode === "repeat") {
+    return { autoplay: true as const, action: "repeat" as const, chapterIndex: index };
+  }
+  if (index < count - 1) {
+    return { autoplay: true as const, action: "advance" as const, chapterIndex: index + 1 };
+  }
+  return { autoplay: false as const, action: "stop" as const, chapterIndex: index };
 }
 
 /** Next and previous select that chapter and start it. Staying on the same chapter does not restart. */

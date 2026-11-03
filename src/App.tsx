@@ -245,7 +245,6 @@ export function App() {
         heading={heading}
         onSignOut={signOut}
         mini={showMini}
-        miniChoice={showMini && player.chapterEnded}
       >
         {route.name === "shelf" ? (
           <Shelf
@@ -305,9 +304,8 @@ export function App() {
             onNext={() => player.changeChapter(1)}
             onSkip={(delta) => player.skip(delta)}
             onSeek={(seconds) => player.seek(seconds)}
-            chapterEnded={player.chapterEnded}
-            onContinue={() => player.continueNext()}
-            onStopHere={() => player.stopAfterChapter()}
+            playbackMode={player.playbackMode}
+            onPlaybackMode={player.setPlaybackMode}
           />
         ) : null}
       </Frame>
@@ -319,11 +317,10 @@ export function App() {
           paused={player.paused}
           seconds={player.seconds}
           duration={player.duration}
-          chapterEnded={player.chapterEnded}
+          playbackMode={player.playbackMode}
+          onPlaybackMode={player.setPlaybackMode}
           onToggle={() => void player.toggle()}
           onExpand={() => setPlayerOpen(true)}
-          onContinue={() => player.continueNext()}
-          onStopHere={() => player.stopAfterChapter()}
         />
       ) : null}
       {playerOpen && player.book ? (
@@ -345,9 +342,8 @@ export function App() {
             onNext={() => player.changeChapter(1)}
             onSkip={(delta) => player.skip(delta)}
             onSeek={(seconds) => player.seek(seconds)}
-            chapterEnded={player.chapterEnded}
-            onContinue={() => player.continueNext()}
-            onStopHere={() => player.stopAfterChapter()}
+            playbackMode={player.playbackMode}
+            onPlaybackMode={player.setPlaybackMode}
           />
         </PlayerSheet>
       ) : null}

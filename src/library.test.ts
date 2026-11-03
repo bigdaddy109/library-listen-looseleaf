@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
+import { copy } from "./i18n";
 import {
   applyProgress,
   buildLibrary,
   planChapterChoice,
-  planChapterFinished,
-  planContinueNext,
   planPausedOpen,
   planStepChapter,
-  planStopAfterChapter,
+  planTrackEnded,
+  PLAYBACK_MODE_KEY,
+  readPlaybackMode,
+  savePlaybackMode,
   resolveBookMedia,
   seriesNames,
   type Entry,
   type ProgressMap,
+  type Store,
 } from "./library";
 
 function file(name: string, size = 1200): Entry["file"] {
@@ -105,32 +108,54 @@ describe("buildLibrary", () => {
   });
 });
 
-describe("chapter end", () => {
+describe("playback mode", () => {
   const hatchet = buildLibrary(sample).find((book) => book.id === "hatchet/hatchet");
   if (!hatchet) throw new Error("missing hatchet");
 
-  it("does not auto-advance when a chapter ends", () => {
-    const finished = planChapterFinished(hatchet.chapters.length, 0);
-    expect(finished.autoplay).toBe(false);
-    expect(finished.offerNext).toBe(true);
-    expect(finished.nextIndex).toBe(1);
-    const last = planChapterFinished(hatchet.chapters.length, hatchet.chapters.length - 1);
+  function memory(initial: Record<string, string> = {}): Store {
+    const data = { ...initial };
+    return {
+      getItem: (key) => data[key] ?? null,
+      setItem: (key, value) => {
+        data[key] = value;
+      },
+    };
+  }
+
+  it("drops the end-of-chapter prompt and defaults to 接續播放", () => {
+    for (const lang of ["zh-TW", "en"] as const) {
+      const values = Object.values(copy(lang)).join("\n");
+      expect(values).not.toContain("這一章結束了");
+      expect(values).not.toContain("接著播放");
+      expect(values).not.toContain("停在這裡");
+      expect(values).not.toContain("This chapter is finished");
+      expect(values).not.toContain("Stop here");
+    }
+    expect(copy("zh-TW").continuePlay).toBe("接續播放");
+    expect(copy("zh-TW").repeatTrack).toBe("重複播放（單一音檔）");
+    expect(readPlaybackMode(memory())).toBe("continue");
+  });
+
+  it("repeats the current track, continues to the next, and remembers the mode", () => {
+    const repeat = planTrackEnded("repeat", hatchet.chapters.length, 0);
+    expect(repeat.autoplay).toBe(true);
+    expect(repeat.action).toBe("repeat");
+    expect(repeat.chapterIndex).toBe(0);
+
+    const next = planTrackEnded("continue", hatchet.chapters.length, 0);
+    expect(next.autoplay).toBe(true);
+    expect(next.action).toBe("advance");
+    expect(next.chapterIndex).toBe(1);
+
+    const last = planTrackEnded("continue", hatchet.chapters.length, hatchet.chapters.length - 1);
     expect(last.autoplay).toBe(false);
-    expect(last.offerNext).toBe(false);
-    expect(last.nextIndex).toBeNull();
-  });
+    expect(last.action).toBe("stop");
 
-  it("plays the next chapter when the listener continues", () => {
-    const plan = planContinueNext(hatchet, {}, 0);
-    expect(plan.autoplay).toBe(true);
-    expect(plan.chapterIndex).toBe(1);
-    expect(plan.chapterTitle).toBe("The Crash");
-  });
-
-  it("does not play when the listener stops", () => {
-    expect(planStopAfterChapter().autoplay).toBe(false);
-    const stayed = planContinueNext(hatchet, {}, hatchet.chapters.length - 1);
-    expect(stayed.autoplay).toBe(false);
+    const store = memory();
+    savePlaybackMode("repeat", store);
+    expect(readPlaybackMode(store)).toBe("repeat");
+    expect(store.getItem(PLAYBACK_MODE_KEY)).toBe("repeat");
+    expect(readPlaybackMode(memory({ [PLAYBACK_MODE_KEY]: "continue" }))).toBe("continue");
   });
 
   it("starts playback when Next chapter is pressed", () => {
@@ -139,9 +164,6 @@ describe("chapter end", () => {
     expect(next.moved).toBe(true);
     expect(next.chapterIndex).toBe(1);
     expect(next.chapterTitle).toBe("The Crash");
-    const same = planStepChapter(hatchet, {}, 0, -1);
-    expect(same.autoplay).toBe(false);
-    expect(same.moved).toBe(false);
   });
 });
 
