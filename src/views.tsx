@@ -689,44 +689,61 @@ export function MiniPlayer({
   onExpand: () => void;
 }) {
   const pct = duration > 0 ? Math.min(100, Math.max(0, (seconds / duration) * 100)) : 0;
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const apply = () => {
+      document.documentElement.style.setProperty("--ll-mini-offset", `${Math.ceil(el.getBoundingClientRect().height)}px`);
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--ll-mini-offset");
+    };
+  }, []);
   return (
     <div
+      ref={rootRef}
       data-mini-player=""
       data-paused={paused ? "true" : "false"}
-      className="fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-30"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="relative z-20 px-3 pt-2">
+      <Paper tilt={false} tape={false} shadow="card" stock="slip" className="relative w-full rounded-none px-3 pt-2 pb-2">
         <PlaybackModeToggle mode={playbackMode} text={text} onMode={onPlaybackMode} />
-      </div>
-      <Paper tilt={false} tape={false} shadow="card" stock="slip" className="ll-mini-bar relative w-full overflow-hidden rounded-none px-3">
-        <button
-          type="button"
-          data-mini-expand=""
-          className="absolute inset-0 z-0 cursor-pointer border-0 bg-transparent p-0"
-          aria-label={text.expand}
-          onClick={onExpand}
-        />
-        <div className="relative z-10 flex h-full items-center gap-3 pointer-events-none">
-          <div className="w-11 shrink-0">
-            <Cover book={book} shape="square" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm leading-tight font-bold">
-              <Marquee text={book.title} />
-            </div>
-            <div className="text-xs leading-tight text-muted-foreground">
-              <Marquee text={chapter} />
-            </div>
-          </div>
-          <Button
+        <div className="ll-mini-track relative mt-2 flex items-center gap-3">
+          <button
             type="button"
-            size="lg"
-            className="pointer-events-auto shrink-0"
-            aria-label={paused ? text.play : text.pause}
-            onClick={onToggle}
-          >
-            {paused ? text.play : text.pause}
-          </Button>
+            data-mini-expand=""
+            className="absolute inset-0 z-0 cursor-pointer border-0 bg-transparent p-0"
+            aria-label={text.expand}
+            onClick={onExpand}
+          />
+          <div className="relative z-10 flex w-full items-center gap-3 pointer-events-none">
+            <div className="w-11 shrink-0">
+              <Cover book={book} shape="square" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm leading-tight font-bold">
+                <Marquee text={book.title} />
+              </div>
+              <div className="text-xs leading-tight text-muted-foreground">
+                <Marquee text={chapter} />
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="lg"
+              className="pointer-events-auto shrink-0"
+              aria-label={paused ? text.play : text.pause}
+              onClick={onToggle}
+            >
+              {paused ? text.play : text.pause}
+            </Button>
+          </div>
         </div>
         <div className="absolute inset-x-0 bottom-0 z-10 h-0.5 bg-ink/15" aria-hidden="true">
           <div className="h-full bg-primary" style={{ width: `${pct}%` }} />

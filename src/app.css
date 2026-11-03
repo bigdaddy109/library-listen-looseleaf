@@ -15,11 +15,11 @@ body {
 }
 
 .ll-mini-spacer {
-  height: calc(clamp(3.5rem, 10dvh, 4.5rem) + 4.5rem + env(safe-area-inset-bottom));
+  height: calc(var(--ll-mini-offset, 9.5rem) + 0.75rem);
 }
 
-.ll-mini-bar {
-  height: clamp(3.5rem, 10dvh, 4.5rem);
+.ll-mini-track {
+  min-height: 3.25rem;
 }
 
 .ll-marquee {
