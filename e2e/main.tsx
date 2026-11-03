@@ -69,7 +69,16 @@ const groupedBooks = buildLibrary([
   fixtureEntry("Library/上學不容易-Middle-School/listen/Middle School 02 - Get Me Out/01.mp3"),
 ]);
 
-const shelfBooks = params.get("fixture") === "grouped" ? groupedBooks : books;
+const whatIfBooks = buildLibrary([
+  fixtureEntry("Library/What If?/listen/What If/01.mp3"),
+  fixtureEntry("Library/門羅-WhatIf/listen/What If/01.mp3"),
+  fixtureEntry("Library/手斧男孩-Hatchet/listen/Hatchet/01.mp3"),
+  fixtureEntry("Library/上學不容易-Middle-School/listen/Middle School 01 - First Day/01.mp3"),
+  fixtureEntry("Library/Immune/listen/Immune Part01/01.mp3"),
+]);
+
+const fixture = params.get("fixture");
+const shelfBooks = fixture === "grouped" ? groupedBooks : fixture === "whatif" ? whatIfBooks : books;
 
 function Harness() {
   const text = copy(lang);

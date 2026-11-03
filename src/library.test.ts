@@ -11,6 +11,7 @@ import {
   readPlaybackMode,
   savePlaybackMode,
   resolveBookMedia,
+  seriesIconName,
   seriesNames,
   type Entry,
   type ProgressMap,
@@ -45,6 +46,33 @@ describe("series names", () => {
     expect(seriesNames("上學不容易-Middle-School")).toEqual({ zh: "上學不容易", en: "Middle School" });
     expect(seriesNames("手斧男孩-Hatchet")).toEqual({ zh: "手斧男孩", en: "Hatchet" });
     expect(seriesNames("門羅-WhatIf")).toEqual({ zh: "門羅", en: "What If" });
+  });
+});
+
+describe("series icons", () => {
+  it("uses the What If drawing for What If and What If?", () => {
+    const whatIf = buildLibrary([entry("Library/What If/listen/What If/01.mp3")])[0];
+    const punctuated = buildLibrary([entry("Library/What If？/listen/What If？/01.mp3")])[0];
+    const bilingual = buildLibrary([entry("Library/門羅-WhatIf/listen/What If/01.mp3")])[0];
+    const sequel = buildLibrary([entry("Library/What If 2/listen/What If 2/01.mp3")])[0];
+    const sequelMark = buildLibrary([entry("Library/What If? 2/listen/What If? 2/01.mp3")])[0];
+    expect(whatIf?.title).toBe("What If");
+    expect(whatIf && seriesIconName(whatIf)).toBe("what-if");
+    expect(punctuated && seriesIconName(punctuated)).toBe("what-if");
+    expect(bilingual?.seriesEn).toBe("What If");
+    expect(bilingual && seriesIconName(bilingual)).toBe("what-if");
+    expect(sequel && seriesIconName(sequel)).toBeNull();
+    expect(sequelMark && seriesIconName(sequelMark)).toBeNull();
+  });
+
+  it("keeps hatchet, middle school, and immune", () => {
+    const books = buildLibrary(sample);
+    const hatchet = books.find((book) => book.seriesEn === "Hatchet");
+    const school = books.find((book) => book.seriesEn === "Middle School");
+    const immune = buildLibrary([entry("Library/Immune/listen/Immune Part01/01.mp3")])[0];
+    expect(hatchet && seriesIconName(hatchet)).toBe("hatchet");
+    expect(school && seriesIconName(school)).toBe("middle-school");
+    expect(immune && seriesIconName(immune)).toBe("immune");
   });
 });
 
