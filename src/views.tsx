@@ -16,18 +16,11 @@ import immuneIcon from "./assets/series-icons/immune.png";
 import schoolIcon from "./assets/series-icons/middle-school.png";
 import whatIfIcon from "./assets/series-icons/what-if.png";
 import whatIf2Icon from "./assets/series-icons/what-if-2.png";
-import { bookFraction, formatClock, planPausedOpen, seriesIconName, type Book, type PlaybackMode, type ProgressMap } from "./library";
+import { bookFraction, coverKind, formatClock, planPausedOpen, seriesIconName, type Book, type PlaybackMode, type ProgressMap } from "./library";
 
 export function seriesLine(book: Book) {
   if (book.seriesZh === book.seriesEn) return book.seriesZh;
   return `${book.seriesZh} · ${book.seriesEn}`;
-}
-
-function coverKind(book: Book) {
-  const blob = `${book.seriesZh} ${book.seriesEn}`.toLowerCase();
-  if (blob.includes("hatchet") || book.seriesZh.includes("斧")) return "woods";
-  if (blob.includes("school") || book.seriesZh.includes("學")) return "school";
-  return "book";
 }
 
 function seriesIcon(book: Book) {

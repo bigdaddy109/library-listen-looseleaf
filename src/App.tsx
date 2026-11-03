@@ -81,14 +81,17 @@ export function App() {
   }, [lang]);
 
   useEffect(() => {
+    const current = route.name === "shelf" ? null : books.find((book) => book.id === route.id);
     const title =
-      route.name === "book"
-        ? books.find((book) => book.id === route.id)?.title || text.shelf
-        : route.name === "player"
-          ? text.openPlayer
-          : text.shelf;
+      player.started && player.chapter
+        ? player.chapter.title
+        : route.name === "book"
+          ? current?.title || text.shelf
+          : route.name === "player"
+            ? player.chapter?.title || current?.title || text.shelf
+            : text.shelf;
     document.title = `${title} · ${text.appName}`;
-  }, [route, books, text]);
+  }, [route, books, text, player.started, player.chapter]);
 
   useEffect(() => {
     const onHash = () => setRoute(parseRoute(location.hash));

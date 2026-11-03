@@ -137,6 +137,14 @@ export function seriesIconName(book: { seriesZh: string; seriesEn: string }): Se
   return null;
 }
 
+/** Paper stock behind a series that has no chosen drawing. */
+export function coverKind(book: { seriesZh: string; seriesEn: string }): "woods" | "school" | "book" {
+  const blob = `${book.seriesZh} ${book.seriesEn}`.toLowerCase();
+  if (blob.includes("hatchet") || book.seriesZh.includes("斧")) return "woods";
+  if (blob.includes("school") || book.seriesZh.includes("學")) return "school";
+  return "book";
+}
+
 export function titleFromFilename(fileName: string) {
   const base = fileName.replace(/\.[^.]+$/, "");
   const part = base.match(/(?:^|[-_\s])part\s*0*(\d+)$/i);
