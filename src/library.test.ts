@@ -3,6 +3,7 @@ import { copy } from "./i18n";
 import {
   applyProgress,
   buildLibrary,
+  miniPlayerVisible,
   planChapterChoice,
   planPausedOpen,
   planStepChapter,
@@ -215,6 +216,22 @@ describe("playback mode", () => {
 describe("open paused", () => {
   const hatchet = buildLibrary(sample).find((book) => book.id === "hatchet/hatchet");
   if (!hatchet) throw new Error("missing hatchet");
+
+  it("shows the mini player toggle before playback, and keeps the book paused", () => {
+    const progress: ProgressMap = applyProgress({}, hatchet.id, "02 - The Crash.mp3", 45, 90, "2026-11-02T00:00:00.000Z");
+    const opened = planPausedOpen(hatchet, progress);
+    expect(opened.autoplay).toBe(false);
+    expect(opened.seekSeconds).toBe(45);
+
+    const pausedBook = { hasTrack: true, route: "book" as const, sheetOpen: false, started: false };
+    expect(miniPlayerVisible(pausedBook)).toBe(true);
+    expect(miniPlayerVisible({ ...pausedBook, started: true })).toBe(true);
+    expect(miniPlayerVisible({ ...pausedBook, route: "shelf" })).toBe(false);
+    expect(miniPlayerVisible({ ...pausedBook, route: "shelf", started: true })).toBe(true);
+    expect(miniPlayerVisible({ ...pausedBook, route: "player" })).toBe(false);
+    expect(miniPlayerVisible({ ...pausedBook, sheetOpen: true })).toBe(false);
+    expect(miniPlayerVisible({ ...pausedBook, hasTrack: false })).toBe(false);
+  });
 
   it("stops at the saved spot and never autoplays", () => {
     const progress: ProgressMap = applyProgress({}, hatchet.id, "02 - The Crash.mp3", 45, 90, "2026-11-02T00:00:00.000Z");
