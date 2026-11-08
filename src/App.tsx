@@ -21,7 +21,7 @@ import {
   type DriveItem,
 } from "./drive";
 import { LANG_KEY, copy, type Lang } from "./i18n";
-import { buildLibrary, resolveBookMedia, type Book, type ProgressMap } from "./library";
+import { buildLibrary, miniPlayerVisible, resolveBookMedia, type Book, type ProgressMap } from "./library";
 import { usePlayer } from "./use-player";
 import { BookScreen, Frame, MiniPlayer, PlayerScreen, PlayerSheet, Shelf } from "./views";
 
@@ -234,7 +234,12 @@ export function App() {
   }
 
   const current = books.find((book) => book.id === (route.name === "shelf" ? "" : route.id)) ?? null;
-  const showMini = player.started && !!player.book && !!player.chapter && route.name !== "player" && !playerOpen;
+  const showMini = miniPlayerVisible({
+    hasTrack: !!player.book && !!player.chapter,
+    route: route.name,
+    sheetOpen: playerOpen,
+    started: player.started,
+  });
   const heading =
     route.name === "player" && current ? current.title : route.name === "book" && current ? current.title : text.shelf;
 
@@ -283,7 +288,7 @@ export function App() {
             activeChapterId={player.book?.id === current.id ? (player.chapter?.id ?? "") : ""}
             clock={player.book?.id === current.id ? player.clock : ""}
             paused={player.book?.id === current.id ? player.paused : true}
-            dock={!player.started}
+            dock={player.book?.id !== current.id}
             onBack={() => go({ name: "shelf" })}
             onOpenPlayer={() => go({ name: "player", id: current.id })}
             onChapter={(index) => player.chooseChapter(current, index)}

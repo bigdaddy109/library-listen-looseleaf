@@ -527,6 +527,24 @@ export function planChapterChoice(
   };
 }
 
+export type PlayerRoute = "shelf" | "book" | "player";
+
+/**
+ * The mini player, including the repeat / continue toggle, is on screen as soon
+ * as a book is open, even while it is still paused. After playback has started
+ * it stays up on the shelf too. The full-screen player and the expanded sheet
+ * replace it.
+ */
+export function miniPlayerVisible(input: {
+  hasTrack: boolean;
+  route: PlayerRoute;
+  sheetOpen: boolean;
+  started: boolean;
+}): boolean {
+  if (!input.hasTrack || input.sheetOpen || input.route === "player") return false;
+  return input.started || input.route === "book";
+}
+
 export function readPlaybackMode(store: Store | null = defaultStore()): PlaybackMode {
   try {
     return store?.getItem(PLAYBACK_MODE_KEY) === "repeat" ? "repeat" : "continue";
