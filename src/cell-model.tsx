@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { Paper } from "@/components/ui/paper";
 import { seriesIconName } from "./library";
 
 /** Main parts a reader can name. The drawing also includes ribosomes and cytoskeleton. */
@@ -152,4 +154,165 @@ export function CellModel() {
       </div>
     </figure>
   );
+}
+
+/** The diagram stays off the page until this button opens a sheet. Audio is left alone. */
+export function CellFigure({ label }: { label: string }) {
+  const [open, setOpen] = useState(false);
+  const [present, setPresent] = useState(false);
+  const [sheetTop, setSheetTop] = useState(160);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!present) return;
+    const place = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setSheetTop(Math.max(8, Math.round(rect.bottom + 8)));
+    };
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [present, open]);
+
+  function toggle() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    buttonRef.current?.scrollIntoView({ block: "start", inline: "nearest" });
+    setPresent(true);
+    setOpen(true);
+  }
+
+  return (
+    <>
+      <Button
+        ref={buttonRef}
+        type="button"
+        size="lg"
+        variant={open ? "default" : "outline"}
+        data-cell-figure=""
+        aria-expanded={open}
+        onClick={toggle}
+      >
+        {label}
+      </Button>
+      {present ? (
+        <FigureSheet
+          open={open}
+          top={sheetTop}
+          onClosed={() => {
+            setPresent(false);
+            setOpen(false);
+          }}
+        >
+          <CellModel />
+        </FigureSheet>
+      ) : null}
+    </>
+  );
+}
+
+function FigureSheet({
+  open,
+  top,
+  onClosed,
+  children,
+}: {
+  open: boolean;
+  top: number;
+  onClosed: () => void;
+  children: ReactNode;
+}) {
+  const [y, setY] = useState(720);
+  const [ease, setEase] = useState(true);
+  const drag = useRef<{ y: number; active: boolean } | null>(null);
+  const closed = useRef(false);
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setY(0));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    if (open || closed.current) return;
+    setEase(true);
+    setY(720);
+    const timer = window.setTimeout(() => {
+      if (closed.current) return;
+      closed.current = true;
+      onClosedRef.current();
+    }, 280);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  function finishClose() {
+    if (closed.current) return;
+    closed.current = true;
+    setEase(true);
+    setY(720);
+    window.setTimeout(() => onClosedRef.current(), 280);
+  }
+
+  const sheet = (
+    <div
+      data-cell-sheet=""
+      data-open={open ? "true" : "false"}
+      className="fixed inset-x-0 z-[34]"
+      style={{
+        top,
+        bottom: "var(--ll-mini-offset, 0px)",
+        transform: `translateY(${y}px)`,
+        transition: ease ? "transform 280ms ease" : "none",
+      }}
+      onPointerDown={(event) => {
+        if (event.button !== 0 || !open) return;
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        if (target.closest("button, a, input, textarea")) return;
+        drag.current = { y: event.clientY, active: true };
+        setEase(false);
+        const move = (ev: PointerEvent) => {
+          if (!drag.current?.active) return;
+          setY(Math.max(0, ev.clientY - drag.current.y));
+        };
+        const up = (ev: PointerEvent) => {
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", up);
+          window.removeEventListener("pointercancel", up);
+          if (!drag.current?.active) return;
+          const dy = Math.max(0, ev.clientY - drag.current.y);
+          drag.current = null;
+          if (dy > 72) finishClose();
+          else {
+            setEase(true);
+            setY(0);
+          }
+        };
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", up);
+        window.addEventListener("pointercancel", up);
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch {
+          /* The window listeners still see the swipe. */
+        }
+      }}
+    >
+      <Paper stock="paper" rules="none" tilt={false} tape={false} shadow="card" className="h-full overflow-y-auto px-4 pt-3 pb-4">
+        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-ink/25" aria-hidden="true" />
+        {children}
+      </Paper>
+    </div>
+  );
+
+  if (typeof document === "undefined") return sheet;
+  return createPortal(sheet, document.body);
 }
