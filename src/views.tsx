@@ -16,7 +16,7 @@ import immuneIcon from "./assets/series-icons/immune.png";
 import schoolIcon from "./assets/series-icons/middle-school.png";
 import whatIfIcon from "./assets/series-icons/what-if.png";
 import whatIf2Icon from "./assets/series-icons/what-if-2.png";
-import { CellModel, bookShowsCellModel } from "./cell-model";
+import { CellFigure, bookShowsCellModel } from "./cell-model";
 import { bookFraction, coverKind, formatClock, planPausedOpen, seriesIconName, type Book, type PlaybackMode, type ProgressMap } from "./library";
 
 export function seriesLine(book: Book) {
@@ -402,10 +402,10 @@ export function BookScreen({
             <Button size="lg" onClick={onOpenPlayer}>
               {text.openPlayer}
             </Button>
+            {bookShowsCellModel(book) ? <CellFigure label={text.figure} /> : null}
           </div>
         </div>
       </div>
-      {bookShowsCellModel(book) ? <CellModel /> : null}
       <Separator>{text.chapters}</Separator>
       <ul className="flex flex-col gap-2">
         {book.chapters.map((chapter) => {

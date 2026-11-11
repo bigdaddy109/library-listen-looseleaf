@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CELL_LABELS, bookShowsCellModel } from "./cell-model";
+import { copy } from "./i18n";
 import { buildLibrary, seriesIconName, type Entry } from "./library";
 
 function entry(path: string): Entry {
@@ -29,5 +30,9 @@ describe("immune cell model", () => {
     expect(hatchet && bookShowsCellModel(hatchet)).toBe(false);
     expect(whatIf && bookShowsCellModel(whatIf)).toBe(false);
     expect(hatchet && seriesIconName(hatchet)).toBe("hatchet");
+  });
+
+  it("names the figure button 圖表", () => {
+    expect(copy("zh-TW").figure).toBe("圖表");
   });
 });
