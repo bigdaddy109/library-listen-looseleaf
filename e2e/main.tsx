@@ -91,6 +91,32 @@ const shelfBooks =
 
 function Harness() {
   const text = copy(lang);
+  if (params.get("fixture") === "immune") {
+    const built = buildLibrary([
+      fixtureEntry("Library/Immune/listen/Immune Part01/01.mp3"),
+      fixtureEntry("Library/Immune/listen/Immune Part02/02.mp3"),
+    ])[0];
+    if (!built) return null;
+    const current = { ...built, coverUrl: wideCover, coverFile: { name: "cover.jpg", driveId: "drive-cover" } };
+    return (
+      <InkProvider>
+        <Frame text={text} lang={lang} setLang={() => undefined} mode="drive" heading={current.title} onSignOut={() => undefined}>
+          <BookScreen
+            book={current}
+            text={text}
+            lang={lang}
+            progress={{}}
+            activeChapterId=""
+            clock=""
+            paused
+            onBack={() => undefined}
+            onOpenPlayer={() => undefined}
+            onChapter={() => undefined}
+          />
+        </Frame>
+      </InkProvider>
+    );
+  }
   if (params.get("fixture") === "book") {
     const current = books[0];
     if (!current) return null;
